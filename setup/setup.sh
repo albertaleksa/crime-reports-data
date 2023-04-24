@@ -1,14 +1,35 @@
 #!/bin/bash
 
+# Get the directory of the current script
+SCRIPT_DIR="$(dirname "$0")"
+
 # initial updates
+echo "=== Update system..."
 sudo apt-get update -y
 sudo apt-get upgrade -y
+# Install unzip if not already installed
+sudo apt-get install -y unzip
+
+# Create a directory for service-account-key
+mkdir -p $HOME/.gc
 
 
 # anaconda setup
-# wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
-# bash Anaconda3-2022.10-Linux-x86_64.sh
-rm Anaconda3-2022.10-Linux-x86_64.sh
+echo "=== Anaconda Setup..."
+bash "${SCRIPT_DIR}/install_anaconda.sh"
 
 # docker install
-sudo apt-get install docker.io
+echo "=== Install docker..."
+sudo apt-get install -y docker.io
+
+# Give permission to run docker commands without sudo in VM
+echo "=== Give permission to run docker commands without sudo in VM..."
+bash "${SCRIPT_DIR}/docker_without_sudo.sh"
+
+# install docker-compose
+echo "=== Install docker-compose..."
+bash "${SCRIPT_DIR}/install_docker_compose.sh"
+
+# install Terraform
+echo "=== Install Terraform..."
+bash "${SCRIPT_DIR}/install_terraform.sh"
