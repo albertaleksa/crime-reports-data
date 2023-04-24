@@ -1,0 +1,4 @@
+scp setup.sh albert_tests@crime-vm:~/crime-reports-data/setup/
+
+echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
