@@ -122,8 +122,22 @@ _[Back to the top](#table-of-contents)_
    ```
    ssh crime-vm
    ```
-2. **Clone** repo
-3. 
+2. In VM **clone** repository and `cd` into it:
+    ```
+    git clone https://github.com/albertaleksa/crime-reports-data.git
+    cd crime-reports-data
+    ```
+3. Run bash script to install software in VM:
+    ```
+    bash ./setup/setup.sh
+    ```
+   This will :
+   * **update** system
+   * download and install **Anaconda**. 
+   * install **Docker**
+
+    During installation you should type `yes` or press `Enter` several times. For the Anaconda setup you should press `f` for more prompt.
+
 
 
 ### Step 3.
