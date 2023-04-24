@@ -1,0 +1,64 @@
+# Austin
+# 2003 - ... (2.37M, 630Mb) 27 Columns
+https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv
+wget https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv -O aus_2003_now.csv
+# API
+# get Crime Reports data in Austin using API filtering by report date.
+
+# Paging max = 50,000 records per page
+For performance, SODA APIs are paged, and return a maximum of 50,000 records per page. So, to request subsequent pages, you’ll need to use the $limit and $offset parameters to request more data. The $limit parameter chooses how many records to return per page, and $offset tells the API on what record to start returning data.
+
+https://data.austintexas.gov/resource/fdj4-gpfu.json?$limit=50000&$offset=0&$order=incident_report_number&$where=rep_date>'2023-04-01T00:00:00.000'
+https://data.austintexas.gov/resource/fdj4-gpfu.json?$limit=50000&$offset=50000&$order=incident_report_number&$where=rep_date>'2023-04-01T00:00:00.000'
+
+
+https://data.austintexas.gov/resource/fdj4-gpfu.json?$where=rep_date>'2023-04-01T00:00:00.000'
+
+
+def get_all(self, *args, **kwargs):
+        """
+        Read data from the requested resource, paginating over all results.
+        Accepts the same arguments as get(). Returns a generator.
+        """
+        params = {}
+        params.update(kwargs)
+        if "offset" not in params:
+            params["offset"] = 0
+        limit = params.get("limit", self.DEFAULT_LIMIT)
+
+        while True:
+            response = self.get(*args, **params)
+            for item in response:
+                yield item
+
+            if len(response) < limit:
+                return
+            params["offset"] += limit
+
+
+# LA
+# 2010 - 2019 (2.12M, 536Mb) 28 Columns
+wget https://data.lacity.org/api/views/63jg-8b9z/rows.csv -O la_2010_2019.csv
+# 2020 - ... (704k, 180Mb) 28 Columns
+https://data.lacity.org/api/views/2nrs-mtv8/rows.csv
+wget https://data.lacity.org/api/views/2nrs-mtv8/rows.csv -O la_2020_now.csv
+
+# API
+https://data.lacity.org/resource/2nrs-mtv8.json
+
+https://data.lacity.org/resource/2nrs-mtv8.json?$where=date_rptd>'2023-04-01T00:00:00.000'
+
+
+# SD
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2023_datasd.csv -O sd_2023.csv
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2022_datasd.csv -O sd_2022.csv
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2021_datasd.csv -O sd_2021.csv
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2020_datasd.csv -O sd_2020.csv
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2019_datasd.csv -O sd_2019.csv
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2018_datasd.csv -O sd_2018.csv
+
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2017_datasd_v1.csv -O sd_2017.csv
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2016_datasd_v1.csv -O sd_2016.csv
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2015_datasd_v1.csv -O sd_2015.csv
+
+wget https://seshat.datasd.org/pd/pd_calls_for_service_dictionary_datasd.csv
