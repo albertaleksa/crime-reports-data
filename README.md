@@ -66,6 +66,8 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
      * `BigQuery Admin`
      * `Storage Admin`
      * `Storage Object Admin`
+     * `Dataproc Administrator`
+     * `Service Account User`
    * After pressing `Done` click Actions on created account and choose `Manage keys`:
      * `Add key` -> `Create new key` -> `JSON` -> `Create`
      * Create New Key for this account (json)
@@ -74,6 +76,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    * https://console.cloud.google.com/apis/library/iam.googleapis.com
    * https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com
    * Compute Engine API (You'll find it when choose `Compute Engine` menu)
+   * Cloud Dataproc API
 5. Generate **SSH keys** to login to VM instances. This will generate a 2048 bit rsa ssh keypair, named `gcp` and a comment of `de_user`. The comment (`de_user`) will be the user on VM :
    * In terminal:
    ```
@@ -83,7 +86,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    * Put generated public key to google cloud:
     (`Compute Engine` -> `Metadata` -> `SSH Keys` -> `Add ssh key`) and copy all from file `gcp.pub`. If you already have SSH key to work with your gcp, you can use it.
 
-6. Create ***Virtual Machine** Instance (`Compute Engine` -> `VM Instances` -> `Create Instance`).
+6. Create **Virtual Machine** Instance (`Compute Engine` -> `VM Instances` -> `Create Instance`).
     ```
     Name: whatever name you would like to call this VM (crime-vm)
     Region, Zone: select a region near you, same with Zone (us-east1-b)
@@ -95,7 +98,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     ![vm_name](/images/01_vm_name.png)
     ![vm_disk](/images/01_vm_disk.png)
 
-    Whe VM is created, note the external IP address.
+    When VM is created, note the external IP address.
 
 7. Connect to created VM from terminal (Copy an external ip of created VM): 
     ```
@@ -153,14 +156,12 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     scp ~/.gc/crime-trends-explorer-user-key.json de_user@crime-vm:~/.gc/
     ```
 7. **(In Remote VM)** Configure gcloud with your service account .json file:
-   - Setup **GOOGLE_APPLICATION_CREDENTIALS**:
+   - If needed change **<path-to-your-key-file>** in file `setup/activate_service_account.sh` to your value
+   - Run command:
+       ```
+      bash ./setup/activate_service_account.sh
       ```
-      export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.gc/crime-trends-explorer-user-key.json"
-      ```
-   - Authenticate cli:
-      ```
-      gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
-      ```
+   - Log out and log back
 
 ### Step 3. Run Terraform to deploy your infrastructure to your Google Cloud Project **(In Remote VM)**
 
@@ -170,15 +171,21 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     ```
     terraform -chdir="./terraform" init
     ```
-2) Build a deployment plan:
+2) Build a deployment plan (change `crime-trends-explorer` to your `project_id` if needed):
     ```
     terraform -chdir="./terraform" plan -var="project_id=crime-trends-explorer"
     ```
-3) Apply the deployment plan and deploy the infrastructure:
+3) Apply the deployment plan and deploy the infrastructure (change `crime-trends-explorer` to your `project_id` if needed). If needed type `yes` to accept actions:
     ```
     terraform -chdir="./terraform" apply -var="project_id=crime-trends-explorer"
     ```
-
+4) Go to Google Cloud Console to make sure that infrastructure is created:
+    - Google Cloud Storage:
+   ![03_bucket.png](/images/03_bucket.png)
+    - BigQuery
+   ![03_bigquery.png](/images/03_bigquery.png)
+    - DataProc
+   ![03_dataproc.png](/images/03_dataproc.png)
 
 
 
