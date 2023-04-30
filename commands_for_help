@@ -2,3 +2,25 @@ scp setup.sh albert_tests@crime-vm:~/crime-reports-data/setup/
 
 echo $PATH
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+
+# delete from ~/.bashrc
+sed -i '/gcloud auth activate-service-account --key-file/d' ~/.bashrc
+sed -i '/ GOOGLE_APPLICATION_CREDENTIALS=/d' ~/.bashrc
+
+wget https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv -O aus_2003_now.csv
+wget https://data.lacity.org/api/views/2nrs-mtv8/rows.csv -O la_2020_now.csv
+
+
+URL="https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"
+OUT_NAME="aus_2003_now.csv"
+BUCKET_NAME="crime_trends_explorer_data_lake"
+
+URL="https://data.lacity.org/api/views/2nrs-mtv8/rows.csv"
+OUT_NAME="la_2020_now.csv"
+BUCKET_NAME="crime_trends_explorer_data_lake"
+
+
+python flows/pipeline.py \
+  --url=${URL} \
+  --output_name=${OUT_NAME} \
+  --bucket_name=${BUCKET_NAME}

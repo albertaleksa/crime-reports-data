@@ -61,4 +61,15 @@ wget https://seshat.datasd.org/pd/pd_calls_for_service_2017_datasd_v1.csv -O sd_
 wget https://seshat.datasd.org/pd/pd_calls_for_service_2016_datasd_v1.csv -O sd_2016.csv
 wget https://seshat.datasd.org/pd/pd_calls_for_service_2015_datasd_v1.csv -O sd_2015.csv
 
+wget https://seshat.datasd.org/pd/pd_calls_for_service_2015_datasd_v1.csv -O sd_2015.csv
+
 wget https://seshat.datasd.org/pd/pd_calls_for_service_dictionary_datasd.csv
+
+# call_type
+http://seshat.datasd.org/pd/pd_cfs_calltypes_datasd.csv
+# disposition
+http://seshat.datasd.org/pd/pd_dispo_codes_datasd.csv
+# beat
+http://seshat.datasd.org/pd/pd_beat_neighborhoods_datasd.csv
+# priority
+http://seshat.datasd.org/pd/pd_cfs_priority_defs_datasd.pdf

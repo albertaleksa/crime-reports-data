@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  ### Prefect Database
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=prefect
+      - POSTGRES_PASSWORD=prefect
+      - POSTGRES_DB=prefect_orion
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  ### Prefect Server API and UI
+  orion:
+    build: .
+    ports:
+      - "4200:4200"
+    depends_on:
+      - postgres
+    environment:
+      - PREFECT__ORION__DATABASE__URL=postgresql://prefect:prefect@postgres:5432/prefect_orion
+      - PREFECT__LOGGING__LEVEL=DEBUG
+
+  ## Prefect Agent
+  agent:
+    build: .
+    depends_on:
+      - orion
+    command: ["prefect", "agent", "local", "start"]
+    environment:
+      - PREFECT__CLOUD__API_URL=http://orion:4200/api
+      - PREFECT__LOGGING__LEVEL=DEBUG
+
+#  # Pipeline
+#  deployment:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    depends_on:
+#      - orion
+#    environment:
+#      - PREFECT__CLOUD__API_URL=http://orion:4200/api
+#      - PREFECT__LOGGING__LEVEL=DEBUG
+
+volumes:
+  postgres-data:
+
+networks:
+  default:
+    name: prefect-network

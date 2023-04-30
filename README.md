@@ -155,6 +155,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     ```
     scp ~/.gc/crime-trends-explorer-user-key.json de_user@crime-vm:~/.gc/
     ```
+   Also copy this key to your folder with project in VM.
 7. **(In Remote VM)** Configure gcloud with your service account .json file:
    - If needed change **<path-to-your-key-file>** in file `setup/activate_service_account.sh` to your value
    - Run command:
@@ -186,6 +187,141 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    ![03_bigquery.png](/images/03_bigquery.png)
     - DataProc
    ![03_dataproc.png](/images/03_dataproc.png)
+
+Step . Install Spark.
+1. In VM Remote run:
+    ```
+    bash ./crime-reports-data/setup/install_spark.sh
+    ```
+2. **IMPORTANT**: Log out and log back in.
+3. Go to work dir and create `lib` folder and download GCS connector:
+```
+cd ~/crime-reports-data/flows/
+mkdir lib
+cd lib
+gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hadoop3-2.2.5.jar
+```
+
+
+
+### Step 4. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage **(In Remote VM)**
+1) Build Docker image in Remote VM:
+    ```
+    docker build -t crime-trends:v001 .
+    or
+    docker build -t crime-trends:v001 --no-cache --progress plain .
+    ```
+2) Create Docker and start it. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
+    ```
+    docker run -it -d -p 4200:4200 \
+        --name=my-crime-trends-container \
+        crime-trends:v001
+    ```
+3) Create a Prefect Flow deployment to:
+    - download datasets from web
+    - upload them into the Goggle Cloud Storage
+    - 
+    ```
+    docker exec -it \
+        my-crime-trends-container \
+        python flows/deploy_ingest.py \
+        --name crime-trends-explorer
+    ```
+4) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
+    ```
+    docker exec -it \
+        my-crime-trends-container \
+        python flows/deploy_ingest.py \
+        --name crime-trends-explorer \
+        --cron "0 2 * * *"
+    ```
+5) To check logs (interactively:
+    ```
+    docker logs -f my-crime-trends-container
+    ```
+6) To stop docker container:
+    ```
+    docker stop my-crime-trends-container
+    ```
+
+docker exec -it my-crime-trends-container bash
+
+$ prefect orion start
+http://127.0.0.1:4200
+
+$ prefect agent start --work-queue "default"
+
+python flows/blocks/make_gcp_blocks.py
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer \
+    --cron "0 2 * * *"
+
+???
+$ prefect block register -m prefect_gcp
+
+# Create prefect block
+block-create:
+	docker-compose run job flows/gcp_blocks.py
+
+# Run and set schedule for data ingestion
+ingest-data:
+	docker-compose run job flows/deploy_ingest.py \
+		--name "github-data" \
+		--params='{"year": 2023, "months":[1,2,3,4], "days":["current"], "kwargs" : {"CHUNK_SIZE":${CHUNK_SIZE}, "GCP_PROJECT_ID":${GCP_PROJECT_ID}, "GCS_BUCKET_ID":${GCS_BUCKET_ID}, "GCS_PATH":${GCS_PATH} } }'
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer \
+    --cron "0 2 * * *"
+
+
+docker build -t crime-trends:v001 .
+
+docker run -it \
+    --name=my-crime-trends-container \
+    --network=prefect-network \
+    -e PREFECT__CLOUD__API_URL=http://orion:4200/api \
+    -e PREFECT__LOGGING__LEVEL=DEBUG \
+    crime-trends:v001 \
+    --name=crime-trends-explorer
+
+docker run -it \
+    --network=prefect-network \
+    crime-trends:v001
+
+# docker run -it \
+#    --network=prefect-network \
+#    crime-trends:v001 \
+#    python deploy_ingest.py --name=crime-trends-explorer
+
+docker run -it \
+   --network=prefect-network \
+   crime-trends:v001 \
+   --name=crime-trends-explorer
+
+docker run --network <project_name>_default -e PREFECT__CLOUD__API_URL=http://orion:4200/api -e PREFECT__LOGGING__LEVEL=DEBUG my-deployment
+
+
+docker run -it \
+  crime-trends:v001 \
+  --name crime-trends-explorer \
+  --cron "0 2 * * *"
+
+For checking:
+docker build -t cr_tst --no-cache --progress plain .
+
+# Running up prefect server and agent
+docker-spin-up:
+	chmod +x script/build.sh && script/build.sh
+	docker-compose up -d server
+	docker-compose up -d agent
+
 
 
 
