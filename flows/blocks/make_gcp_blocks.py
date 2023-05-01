@@ -10,7 +10,7 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '../../.env'))
 
-credentials_file_path = os.getenv("GCP_CREDENTIALS_PATH")
+credentials_file_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 credentials_block_name = os.getenv("CREDS_BLOCK_NAME")
 bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")

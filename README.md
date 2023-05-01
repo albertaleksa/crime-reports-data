@@ -213,9 +213,13 @@ gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hado
     ```
 2) Create Docker and start it. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
     ```
-    docker run -it -d -p 4200:4200 \
+    docker run -it -d -p 4200:4200 -p 4040:4040 \
         --name=my-crime-trends-container \
         crime-trends:v001
+    ```
+   For stop:
+    ```
+    docker stop my-crime-trends-container
     ```
 3) Create a Prefect Flow deployment to:
     - download datasets from web
@@ -235,13 +239,20 @@ gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hado
         --name crime-trends-explorer \
         --cron "0 2 * * *"
     ```
-5) To check logs (interactively:
+5) To check logs (interactively):
     ```
     docker logs -f my-crime-trends-container
     ```
 6) To stop docker container:
     ```
     docker stop my-crime-trends-container
+    ```
+
+Run spark_save_parquet.py
+    ```
+    docker exec -it \
+        my-crime-trends-container \
+        python flows/spark_save_parquet.py
     ```
 
 docker exec -it my-crime-trends-container bash

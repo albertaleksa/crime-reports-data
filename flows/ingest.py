@@ -52,7 +52,7 @@ def upload_to_gcs(path: Path) -> None:
     # Check if the file exists
     if os.path.exists(path):
         # If the file exists, upload it to GCS
-        gcs_block.upload_from_path(from_path=path, to_path=path, timeout=300)
+        gcs_block.upload_from_path(from_path=path, to_path=f"raw/{path}", timeout=300)
         os.remove(path)
     else:
         print(f"The file '{path}' does not exist.")
