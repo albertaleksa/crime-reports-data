@@ -60,11 +60,32 @@ def upload_to_gcs(path: Path) -> None:
     return
 
 
+@task(log_prints=True)
+def upload_job_to_gcs() -> None:
+    """Upload python-file with Spark job to gcs"""
+    bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
+    spark_job_file = os.getenv("SPARK_JOB_FILE")
+    spark_job_file_path = f'flows/{os.getenv("SPARK_JOB_FILE")}'
+    gcs_block = GcsBucket.load(bucket_block_name)
+
+    # Check if the file exists
+    if os.path.exists(spark_job_file_path):
+        # If the file exists, upload it to GCS
+        gcs_block.upload_from_path(from_path=spark_job_file_path, to_path=f"code/{spark_job_file}", timeout=300)
+    else:
+        print(f"The file '{spark_job_file_path}' does not exist.")
+
+    return
+
+
 @flow(name="Ingest Flow")
 def web_to_gcs(url: str, csv_name: str) -> None:
     # download the csv
     downloaded_file = download_file(url, csv_name)
     upload_to_gcs(downloaded_file)
+    # upload python-file with Spark job to gcs
+    upload_job_to_gcs()
+
 
 
 @flow()

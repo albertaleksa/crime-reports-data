@@ -9,7 +9,7 @@ credentials_location = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 conf = SparkConf() \
     .setMaster('local[*]') \
-    .setAppName('test') \
+    .setAppName('crime-reports-data-app') \
     .set("spark.jars", "./lib/gcs-connector-hadoop3-2.2.5.jar") \
     .set("spark.hadoop.google.cloud.auth.service.account.enable", "true") \
     .set("spark.hadoop.google.cloud.auth.service.account.json.keyfile", credentials_location)

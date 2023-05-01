@@ -93,7 +93,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     Machine type: Standard, 4vCPu, 16 GB Memory (e2-standard-4)
     Operating system: Ubuntu
     Version: Ubuntu 20.04 LTS
-    Boot disk size: 20Gb.
+    Boot disk size: 30Gb.
     ```
     ![vm_name](/images/01_vm_name.png)
     ![vm_disk](/images/01_vm_disk.png)
@@ -202,7 +202,10 @@ cd lib
 gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hadoop3-2.2.5.jar
 ```
 
-
+Upload spark job file to gcs bucket:
+```
+gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-trends-explorer/code/spark_job.py
+```
 
 ### Step 4. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage **(In Remote VM)**
 1) Build Docker image in Remote VM:
