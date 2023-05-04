@@ -1,0 +1,25 @@
+dbt_crime:
+  outputs:
+    dev:
+      dataset: dev_crime_reports
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+      keyfile: /crime-trends-explorer-user-key.json
+      location: us-east1
+      method: service-account
+      priority: interactive
+      project: crime-trends-explorer
+      threads: 1
+      type: bigquery
+    prod:
+      dataset: prod_crime_reports
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+      keyfile: /crime-trends-explorer-user-key.json
+      location: us-east1
+      method: service-account
+      priority: interactive
+      project: crime-trends-explorer
+      threads: 1
+      type: bigquery
+  target: dev

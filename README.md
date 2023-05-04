@@ -21,7 +21,6 @@ Final Project for Data Engineering Zoomcamp Course
   - [Step 4. Install Spark in VM (Optional. Data pipeline will work in Docker container)](#step-4-install-spark-in-vm--optional-data-pipeline-will-work-in-docker-container--)
   - [Step 5. Run pipeline using Prefect](#step-5-run-pipeline-using-prefect-for-orchestration-in-docker-container-which-copy-datasets-from-web-to-google-cloud-storage-then-save-in-parquet-save-to-big-query-and-process-using-dbt-in-remote-vm)
   - [Step 6. dbt transformation data in BigQuery](#step-6-dbt-transformation-data-in-bigquery-in-remote-vm)
-  - 
 - [Future Improvements](#future-improvements)
 - [Credits](#credits)
 
@@ -81,6 +80,7 @@ _[Back to the top](#table-of-contents)_
 
 ## Dashboard & Results
 
+![dashboard.png](/images/dashboard.png)
 
 
 _[Back to the top](#table-of-contents)_
