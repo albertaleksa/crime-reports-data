@@ -138,8 +138,9 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    * download and install **Anaconda**. 
    * install **Docker**
    * Give permission to run **docker** commands **without sudo** in VM
-   * Install docker-compose
-   * Install Terraform
+   * Install **docker-compose**
+   * Install **Terraform**
+   * Install **make**
 
 4. **IMPORTANT**: Log out and log back in so that your group membership is re-evaluated.
 
@@ -187,8 +188,9 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    ![03_bigquery.png](/images/03_bigquery.png)
     - DataProc
    ![03_dataproc.png](/images/03_dataproc.png)
+5) Copy a Dataproc temp bucket name from gcs buckets to file `.env` in field `DATAPROC_TEMP_BUCKET`.
 
-Step . Install Spark.
+### Step 4. Install Spark in VM (Optional. Data pipeline will work in Docker container).
 1. In VM Remote run:
     ```
     bash ./crime-reports-data/setup/install_spark.sh
@@ -202,29 +204,30 @@ cd lib
 gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hadoop3-2.2.5.jar
 ```
 
-Upload spark job file to gcs bucket:
-```
-gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-trends-explorer/code/spark_job.py
-```
-
-### Step 4. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage **(In Remote VM)**
+### Step 5. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage, then save in parquet, save to Big Query and process using dbt **(In Remote VM)**
 1) Build Docker image in Remote VM:
     ```
     make docker-build
     ```
-2) Run docker-compose. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
+2) Run docker-compose in background. It starts Prefect Orion Server, Prefect Agent, Prefect db and container which will execute pipeline:
     ```
     make docker-up
     ```
-   For stop:
+   To stop:
     ```
     make docker-down
     ```
-3) Run python script to create blocks for Prefect:
+3) For monitoring and run/schedule pipelines using Prefect UI it's necessary to forward port `4200` (I used PyCharm Pro for this) and open url: `http://127.0.0.1:4200/` on local machine.
+    ![05_orion_ui.png](/images/05_orion_ui.png)
+
+4) Run python script to create blocks for Prefect:
     ```
     make create-block
     ```
-4) Create a Prefect Flow deployment to:
+   You can check in UI that blocks for `GCP Credentials` and `GCS Bucket` are created:
+    ![05_orion_blocks.png](/images/05_orion_blocks.png)
+
+5) Create a Prefect Flow deployment to:
     - download datasets from web
     - upload them into Goggle Cloud Storage
     - upload spark_job file to Goggle Cloud Storage
@@ -232,104 +235,25 @@ gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-tre
       - read csv files
       - modify columns
       - save to parquet
-      - save to Big Query
+      - save to Big Query with daily **partitioning** by `crime_date` column. This type of partitioning is used to improve performance because I will make aggregation by this field to analyse data. 
     ```
     make ingest-data
     ```
-5) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
+6) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
     ```
     make ingest-data-schedule
     ```
-
-
-1) Build Docker image in Remote VM:
+   ![05_deployments.png](/images/05_deployments.png)
+   
+7) To check Agent's logs (interactively):
     ```
-    docker build -t crime-trends:v001 .
-    or
-    docker build -t crime-trends:v001 --no-cache --progress plain .
+    make docker-agent-logs
     ```
 
-docker-compose up  
-docker-compose up -d  
-docker-compose down
 
-
-docker exec -it \
-        my-crime-trends-container \
-        python flows/deploy_ingest.py \
-        --name crime-trends-explorer
-
-docker-compose exec my-crime-trends-container \
-    python flows/deploy_ingest.py \
-        --name crime-trends-explorer \
-        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
-
-docker-compose run my-crime-trends-container \
-    python flows/deploy_ingest.py \
-        --name crime-trends-explorer \
-        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
-
-
-2) Create Docker and start it. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
-    ```
-    docker run -it -d -p 4200:4200 -p 4040:4040 \
-        --name=my-crime-trends-container \
-        crime-trends:v001
-    ```
-   For stop:
-    ```
-    docker stop my-crime-trends-container
-    ```
-3) Create a Prefect Flow deployment to:
-    - download datasets from web
-    - upload them into the Goggle Cloud Storage
-    - upload spark_job file to the Goggle Cloud Storage
-    - 
-    ```
-    docker exec -it \
-        my-crime-trends-container \
-        python flows/deploy_ingest.py \
-        --name crime-trends-explorer
-    ```
-4) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
-    ```
-    docker exec -it \
-        my-crime-trends-container \
-        python flows/deploy_ingest.py \
-        --name crime-trends-explorer \
-        --cron "0 2 * * *"
-    ```
-5) To check logs (interactively):
-    ```
-    docker logs -f my-crime-trends-container
-    ```
-6) To stop docker container:
-    ```
-    docker stop my-crime-trends-container
-    ```
-
-Run spark_save_parquet.py
-    ```
-    docker exec -it \
-        my-crime-trends-container \
-        python flows/spark_save_parquet.py
-    ```
 
 docker exec -it my-crime-trends-container bash
 
-$ prefect orion start
-http://127.0.0.1:4200
-
-$ prefect agent start --work-queue "default"
-
-python flows/blocks/make_gcp_blocks.py
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer \
-    --cron "0 2 * * *"
 
 ???
 $ prefect block register -m prefect_gcp

@@ -18,6 +18,7 @@ services:
   # Prefect Server API and UI
   server:
     image: crime-trends:v001
+    container_name: my-crime-trends-server
     restart: always
     volumes:
       - prefect:/root/.prefect
@@ -37,6 +38,7 @@ services:
   # Prefect Agent
   agent:
     image: crime-trends:v001
+    container_name: my-crime-trends-agent
     restart: always
     entrypoint: ["prefect", "agent", "start", "-q", "default"]
     volumes:

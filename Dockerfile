@@ -67,13 +67,6 @@ RUN gcloud auth activate-service-account --key-file="${KEY_FILE}"
 # Make ports 80, 4200 available to the world outside this container
 EXPOSE 80 4200 4040
 
-# CMD ["prefect", "orion", "start"]
-
-# RUN prefect orion start &
-
-# RUN python flows/blocks/make_gcp_blocks.py
-# ENTRYPOINT ["python", "prefect/flows/deploy_ingest.py"]
-
 
 # Set entry point as bash
 # Set the entrypoint script as the entrypoint for the container

@@ -35,11 +35,14 @@ def write_parquet(df: DataFrame, output_path: str, partitions_num: int) -> None:
         .write.parquet(output_path, mode='overwrite')
 
 
-def write_to_bigquery(df: DataFrame, output: str) -> None:
+def write_to_bigquery(df: DataFrame, output: str, partition_column: str) -> None:
     """Saving the data to BigQuery"""
     print(f"Write to BigQuery {output}")
     df.write.format('bigquery') \
         .option('table', output) \
+        .option('partitionType', 'MONTH') \
+        .option('partitionField', partition_column) \
+        .option('clustering', partition_column) \
         .mode("overwrite") \
         .save()
 
@@ -302,24 +305,27 @@ def modify_sd(df: DataFrame) -> DataFrame:
 
 
 def parquet_to_bq_aus(spark: SparkSession, input_path: str, output_bq: str):
-    """Read data from parquet, modify columns and save to BigQuery for Austin"""
+    """Read data from parquet, modify columns and
+        save to BigQuery for Austin using daily partitioning by crime_date column"""
     df_aus = read_parquet(spark, input_path)
     df_modify_aus = modify_aus(df_aus)
-    write_to_bigquery(df_modify_aus, output_bq)
+    write_to_bigquery(df_modify_aus, output_bq, "crime_date")
 
 
 def parquet_to_bq_la(spark: SparkSession, input_path: str, output_bq: str):
-    """Read data from parquet, modify columns and save to BigQuery for Los Angeles"""
+    """Read data from parquet, modify columns and
+        save to BigQuery for Los Angeles using daily partitioning by crime_date column"""
     df_la = read_parquet(spark, input_path)
     df_modify_la = modify_la(df_la)
-    write_to_bigquery(df_modify_la, output_bq)
+    write_to_bigquery(df_modify_la, output_bq, "crime_date")
 
 
 def parquet_to_bq_sd(spark: SparkSession, input_path: str, output_bq: str):
-    """Read data from parquet, modify columns and save to BigQuery for San Diego"""
+    """Read data from parquet, modify columns and
+        save to BigQuery for San Diego using daily partitioning by crime_date column"""
     df_sd = read_parquet(spark, input_path)
     df_modify_sd = modify_sd(df_sd)
-    write_to_bigquery(df_modify_sd, output_bq)
+    write_to_bigquery(df_modify_sd, output_bq, "crime_date")
 
 
 def main(params):

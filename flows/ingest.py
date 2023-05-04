@@ -18,7 +18,8 @@ from google.cloud import dataproc_v1 as dataproc
 import uuid
 
 
-@task(log_prints=True, retries=3, retry_delay_seconds=60, cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+# @task(log_prints=True, retries=3, retry_delay_seconds=60, cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+@task(log_prints=True, retries=3, retry_delay_seconds=60)
 def download_file(url: str, csv_name: str) -> Path:
     """Download data from web into local storage"""
     city = csv_name.split("_")[0]
