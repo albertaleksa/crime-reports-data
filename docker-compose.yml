@@ -1,51 +1,74 @@
 version: '3.8'
 
 services:
-  ### Prefect Database
-  postgres:
-    image: postgres:13
+
+  # Prefect Database
+  database:
+    image: postgres:15.2-alpine
+    restart: always
     environment:
-      - POSTGRES_USER=prefect
-      - POSTGRES_PASSWORD=prefect
-      - POSTGRES_DB=prefect_orion
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=prefect
+    expose:
+      - 5432
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
 
-  ### Prefect Server API and UI
-  orion:
-    build: .
+  # Prefect Server API and UI
+  server:
+    image: crime-trends:v001
+    restart: always
+    volumes:
+      - prefect:/root/.prefect
+    entrypoint: ["prefect", "orion", "start", "--host", "0.0.0.0", "--port", "4200"]
+    environment:
+      # If you want to access Prefect Server from anywhere other than the Docker host machine, you will need to change
+      # PREFECT_UI_URL to match the external hostname/IP used to load the  UI in your web browser.
+      - PREFECT_ORION_API_HOST=0.0.0.0
+      - PREFECT_ORION_API_PORT=4200
+      - PREFECT_ORION_UI_API_URL=http://127.0.0.1:4200/api
+      - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://postgres:postgres@database:5432/prefect
     ports:
-      - "4200:4200"
+      - 4200:4200
     depends_on:
-      - postgres
-    environment:
-      - PREFECT__ORION__DATABASE__URL=postgresql://prefect:prefect@postgres:5432/prefect_orion
-      - PREFECT__LOGGING__LEVEL=DEBUG
+      - database
 
-  ## Prefect Agent
+  # Prefect Agent
   agent:
-    build: .
-    depends_on:
-      - orion
-    command: ["prefect", "agent", "local", "start"]
+    image: crime-trends:v001
+    restart: always
+    entrypoint: ["prefect", "agent", "start", "-q", "default"]
+    volumes:
+      - "./flows:/app/flows"
     environment:
-      - PREFECT__CLOUD__API_URL=http://orion:4200/api
-      - PREFECT__LOGGING__LEVEL=DEBUG
+      - PREFECT_API_URL=http://server:4200/api
+#       Use PREFECT_API_KEY if connecting the agent to Prefect Cloud
+#     - PREFECT_API_KEY=YOUR_API_KEY
 
-#  # Pipeline
-#  deployment:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
+
+  # pipeline
+  my-crime-trends-container:
+    image: crime-trends:v001
+    container_name: my-crime-trends-container
+    volumes:
+      - "./flows:/app/flows"
+    environment:
+      - PREFECT_API_URL=http://server:4200/api
+    tty: true
+    stdin_open: true
+    # Optionally, you can add other configurations such as environment variables, ports, volumes, etc.
+    # environment:
+    #   - ENV_VAR=value
+    # ports:
+    #   - "host_port:container_port"
+    # volumes:
+    #   - "host_path:container_path"
 #    depends_on:
-#      - orion
-#    environment:
-#      - PREFECT__CLOUD__API_URL=http://orion:4200/api
-#      - PREFECT__LOGGING__LEVEL=DEBUG
 
 volumes:
-  postgres-data:
-
+  prefect:
+  db:
 networks:
   default:
     name: prefect-network

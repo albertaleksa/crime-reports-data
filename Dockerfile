@@ -14,8 +14,8 @@ COPY .env .
 # In future better use volumes with path to project folder in VM
 COPY crime-trends-explorer-user-key.json /.
 ENV KEY_FILE="/crime-trends-explorer-user-key.json"
-COPY flows/blocks /app/flows/blocks
-COPY flows/*.py /app/flows/
+#COPY flows/blocks /app/flows/blocks
+#COPY flows/*.py /app/flows/
 
 # Copy the entrypoint script into the image
 COPY entrypoint.sh /entrypoint.sh
@@ -77,6 +77,6 @@ EXPOSE 80 4200 4040
 
 # Set entry point as bash
 # Set the entrypoint script as the entrypoint for the container
-ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
-#ENTRYPOINT ["bash"]
+#ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
+ENTRYPOINT ["bash"]
 # ENTRYPOINT ["python", "flows/deploy_ingest.py"]

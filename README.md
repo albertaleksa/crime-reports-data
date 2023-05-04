@@ -210,10 +210,66 @@ gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-tre
 ### Step 4. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage **(In Remote VM)**
 1) Build Docker image in Remote VM:
     ```
+    make docker-build
+    ```
+2) Run docker-compose. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
+    ```
+    make docker-up
+    ```
+   For stop:
+    ```
+    make docker-down
+    ```
+3) Run python script to create blocks for Prefect:
+    ```
+    make create-block
+    ```
+4) Create a Prefect Flow deployment to:
+    - download datasets from web
+    - upload them into Goggle Cloud Storage
+    - upload spark_job file to Goggle Cloud Storage
+    - submit spark job to DataProcCluster. Spark job will do:
+      - read csv files
+      - modify columns
+      - save to parquet
+      - save to Big Query
+    ```
+    make ingest-data
+    ```
+5) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
+    ```
+    make ingest-data-schedule
+    ```
+
+
+1) Build Docker image in Remote VM:
+    ```
     docker build -t crime-trends:v001 .
     or
     docker build -t crime-trends:v001 --no-cache --progress plain .
     ```
+
+docker-compose up  
+docker-compose up -d  
+docker-compose down
+
+
+docker exec -it \
+        my-crime-trends-container \
+        python flows/deploy_ingest.py \
+        --name crime-trends-explorer
+
+docker-compose exec my-crime-trends-container \
+    python flows/deploy_ingest.py \
+        --name crime-trends-explorer \
+        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
+
+docker-compose run my-crime-trends-container \
+    python flows/deploy_ingest.py \
+        --name crime-trends-explorer \
+        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
+
+
 2) Create Docker and start it. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
     ```
     docker run -it -d -p 4200:4200 -p 4040:4040 \
@@ -227,6 +283,7 @@ gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-tre
 3) Create a Prefect Flow deployment to:
     - download datasets from web
     - upload them into the Goggle Cloud Storage
+    - upload spark_job file to the Goggle Cloud Storage
     - 
     ```
     docker exec -it \

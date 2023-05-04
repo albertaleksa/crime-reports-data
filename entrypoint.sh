@@ -11,7 +11,7 @@ prefect agent start --work-queue "default" &
 
 sleep 10
 
-# Run python script to create blocks fo Prefect
+# Run python script to create blocks for Prefect
 python flows/blocks/make_gcp_blocks.py
 
 # Start a new bash shell for interaction

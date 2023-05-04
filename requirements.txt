@@ -12,3 +12,4 @@ python-dotenv==1.0.0
 
 psycopg2
 gcsfs
+google-cloud-dataproc
