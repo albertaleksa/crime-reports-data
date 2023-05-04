@@ -46,7 +46,6 @@ services:
 #       Use PREFECT_API_KEY if connecting the agent to Prefect Cloud
 #     - PREFECT_API_KEY=YOUR_API_KEY
 
-
   # pipeline
   my-crime-trends-container:
     image: crime-trends:v001
@@ -57,14 +56,6 @@ services:
       - PREFECT_API_URL=http://server:4200/api
     tty: true
     stdin_open: true
-    # Optionally, you can add other configurations such as environment variables, ports, volumes, etc.
-    # environment:
-    #   - ENV_VAR=value
-    # ports:
-    #   - "host_port:container_port"
-    # volumes:
-    #   - "host_path:container_path"
-#    depends_on:
 
 volumes:
   prefect:
