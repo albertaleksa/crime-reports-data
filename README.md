@@ -3,27 +3,61 @@ Final Project for Data Engineering Zoomcamp Course
 
 ## Table of contents
 
-- [Problem Description](#problem-description)
-- [Dataset](#dataset)
+- [Problem Description](#problem-description):
+  - [Objective](#objective)
+  - [Data Sources](#data-sources)
+  - [Data Processing](#data-processing)
+  - [Data Storage](#data-storage)
+  - [Analysis and Visualization](#analysis-and-visualization)
+
 - [Technologies & Tools](#technologies--tools)
 - [Data Pipeline Architecture diagram](#data-pipeline-architecture-diagram)
 - [Pipeline explanation](#pipeline-explanation)
 - [Dashboard & Results](#dashboard--results)
 - [How to reproduce](#how-to-reproduce)
-  - [Step 1. Set Up Cloud Environment](#step-1-set-up-cloud-environment)
-  - [Step 2.]()
+  - [Step 1. Set Up Cloud Environment. Using Google Console and local terminal](#step-1-set-up-cloud-environment-using-google-console-and-local-terminal)
+  - [Step 2. Set Up Cloud Environment. Using VM Terminal](#step-2-set-up-cloud-environment-using-vm-terminal)
+  - [Step 3. Run Terraform to deploy your infrastructure to your Google Cloud Project **(In Remote VM)**](#step-3-run-terraform-to-deploy-your-infrastructure-to-your-google-cloud-project-in-remote-vm)
+  - [Step 4. Install Spark in VM (Optional. Data pipeline will work in Docker container)](#step-4-install-spark-in-vm--optional-data-pipeline-will-work-in-docker-container--)
+  - [Step 5. Run pipeline using Prefect](#step-5-run-pipeline-using-prefect-for-orchestration-in-docker-container-which-copy-datasets-from-web-to-google-cloud-storage-then-save-in-parquet-save-to-big-query-and-process-using-dbt-in-remote-vm)
+  - [Step 6. dbt transformation data in BigQuery](#step-6-dbt-transformation-data-in-bigquery-in-remote-vm)
+  - 
 - [Future Improvements](#future-improvements)
 - [Credits](#credits)
 
 ---
 
-## Problem Description
+## Problem Description: CrimeTrendsExplorer - A Multi-City Crime Analysis Project
 
+The CrimeTrendsExplorer is a comprehensive data engineering project aimed at processing, analyzing, and exploring crime records data for three major cities in the United States: Austin, Los Angeles, and San Diego. The project covers several years of data, providing valuable insights and trends that can help law enforcement agencies, city planners, researchers, and the general public make informed decisions.
 
-_[Back to the top](#table-of-contents)_
+### Objective
+The primary goal of the CrimeTrendsExplorer project is to build a robust data pipeline that ingests, processes, and transforms raw crime data from multiple sources, and stores the results in a highly accessible, structured, and queryable format. The project will involve various data engineering tasks, including data ingestion, data cleaning, data validation, data transformation, and data storage.
 
-## Dataset
+### Data Sources
+The crime records data will be obtained from the following sources:
 
+1. Austin: Austin Police Department's Public Data Portal (https://data.austintexas.gov/)
+2. Los Angeles: Los Angeles Open Data Portal (https://data.lacity.org/)
+3. San Diego: San Diego Data Portal (https://data.sandiego.gov/)
+
+### Data Processing
+The raw crime data will be processed using Apache Spark, which provides a highly scalable and distributed computing framework for big data processing. The pipeline will involve the following steps:
+
+1. Ingest raw crime data from multiple sources in various formats (CSV, JSON, etc.).
+2. Perform data cleaning, validation, and preprocessing to ensure data consistency and integrity.
+3. Transform and enrich the data, extracting relevant features and aggregating the data as needed.
+4. Write the processed data to a partitioned and clustered table in Google BigQuery for efficient querying and analysis.
+
+### Data Storage
+The processed crime data will be stored in Google BigQuery, a highly-scalable and fully-managed data warehouse solution that enables fast and efficient querying and analysis. The data will be partitioned and clustered to optimize query performance, and the schema will be designed to support easy exploration and analysis of the data.
+
+# Analysis and Visualization
+The CrimeTrendsExplorer project will provide a foundation for further analysis and visualization of the crime data. The processed data can be used to generate insights and trends, such as identifying high-crime areas, understanding seasonal patterns, and exploring the relationship between different types of crimes. 
+
+For visualization purposes, the project will utilize Looker (Google Data Studio), a powerful and user-friendly data visualization tool that integrates seamlessly with Google BigQuery. Looker enables users to create interactive charts, dashboards, and reports, allowing them to explore the data and derive actionable insights without the need for extensive technical expertise. Users can customize and share their visualizations, making it easy for stakeholders to access and interpret the data.
+
+By leveraging modern data engineering technologies and best practices, the CrimeTrendsExplorer project aims to create a powerful platform for understanding and exploring crime patterns in major cities, ultimately contributing to a safer and more informed society.
 
 _[Back to the top](#table-of-contents)_
 
@@ -34,6 +68,9 @@ _[Back to the top](#table-of-contents)_
 
 ## Data Pipeline Architecture diagram
 
+![data_engineering_architecture.png](/images/data_engineering_architecture.png)
+
+
 
 _[Back to the top](#table-of-contents)_
 
@@ -43,6 +80,7 @@ _[Back to the top](#table-of-contents)_
 _[Back to the top](#table-of-contents)_
 
 ## Dashboard & Results
+
 
 
 _[Back to the top](#table-of-contents)_
@@ -250,75 +288,18 @@ gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hado
     make docker-agent-logs
     ```
 
+### Step 6. dbt transformation data in BigQuery **(In Remote VM)**
+1) Build dbt:
+dbt build
+2) Build dbt for production:
+dbt build -t prod --vars 'is_test_run: false'
+3) Create visualization
 
+docker-compose exec my-crime-trends-container \
+    dbt build
 
-docker exec -it my-crime-trends-container bash
-
-
-???
-$ prefect block register -m prefect_gcp
-
-# Create prefect block
-block-create:
-	docker-compose run job flows/gcp_blocks.py
-
-# Run and set schedule for data ingestion
-ingest-data:
-	docker-compose run job flows/deploy_ingest.py \
-		--name "github-data" \
-		--params='{"year": 2023, "months":[1,2,3,4], "days":["current"], "kwargs" : {"CHUNK_SIZE":${CHUNK_SIZE}, "GCP_PROJECT_ID":${GCP_PROJECT_ID}, "GCS_BUCKET_ID":${GCS_BUCKET_ID}, "GCS_PATH":${GCS_PATH} } }'
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer \
-    --cron "0 2 * * *"
-
-
-docker build -t crime-trends:v001 .
-
-docker run -it \
-    --name=my-crime-trends-container \
-    --network=prefect-network \
-    -e PREFECT__CLOUD__API_URL=http://orion:4200/api \
-    -e PREFECT__LOGGING__LEVEL=DEBUG \
-    crime-trends:v001 \
-    --name=crime-trends-explorer
-
-docker run -it \
-    --network=prefect-network \
-    crime-trends:v001
-
-# docker run -it \
-#    --network=prefect-network \
-#    crime-trends:v001 \
-#    python deploy_ingest.py --name=crime-trends-explorer
-
-docker run -it \
-   --network=prefect-network \
-   crime-trends:v001 \
-   --name=crime-trends-explorer
-
-docker run --network <project_name>_default -e PREFECT__CLOUD__API_URL=http://orion:4200/api -e PREFECT__LOGGING__LEVEL=DEBUG my-deployment
-
-
-docker run -it \
-  crime-trends:v001 \
-  --name crime-trends-explorer \
-  --cron "0 2 * * *"
-
-For checking:
-docker build -t cr_tst --no-cache --progress plain .
-
-# Running up prefect server and agent
-docker-spin-up:
-	chmod +x script/build.sh && script/build.sh
-	docker-compose up -d server
-	docker-compose up -d agent
-
-
-
+docker-compose exec my-crime-trends-container \
+    cd dbt_crime && dbt build
 
 _[Back to the top](#table-of-contents)_
 

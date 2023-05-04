@@ -54,6 +54,7 @@ services:
     container_name: my-crime-trends-container
     volumes:
       - "./flows:/app/flows"
+      - "./dbt_crime:/app/dbt_crime"
     environment:
       - PREFECT_API_URL=http://server:4200/api
     tty: true

@@ -9,8 +9,11 @@ RUN mkdir -p /app &&\
 # Set working directory
 WORKDIR /app
 
+RUN mkdir -p /root/.dbt
+
 COPY requirements.txt .
 COPY .env .
+COPY profiles.yml .
 # In future better use volumes with path to project folder in VM
 COPY crime-trends-explorer-user-key.json /.
 ENV KEY_FILE="/crime-trends-explorer-user-key.json"
