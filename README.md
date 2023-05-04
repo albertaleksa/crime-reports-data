@@ -66,6 +66,8 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
      * `BigQuery Admin`
      * `Storage Admin`
      * `Storage Object Admin`
+     * `Dataproc Administrator`
+     * `Service Account User`
    * After pressing `Done` click Actions on created account and choose `Manage keys`:
      * `Add key` -> `Create new key` -> `JSON` -> `Create`
      * Create New Key for this account (json)
@@ -74,6 +76,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    * https://console.cloud.google.com/apis/library/iam.googleapis.com
    * https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com
    * Compute Engine API (You'll find it when choose `Compute Engine` menu)
+   * Cloud Dataproc API
 5. Generate **SSH keys** to login to VM instances. This will generate a 2048 bit rsa ssh keypair, named `gcp` and a comment of `de_user`. The comment (`de_user`) will be the user on VM :
    * In terminal:
    ```
@@ -83,19 +86,19 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    * Put generated public key to google cloud:
     (`Compute Engine` -> `Metadata` -> `SSH Keys` -> `Add ssh key`) and copy all from file `gcp.pub`. If you already have SSH key to work with your gcp, you can use it.
 
-6. Create ***Virtual Machine** Instance (`Compute Engine` -> `VM Instances` -> `Create Instance`).
+6. Create **Virtual Machine** Instance (`Compute Engine` -> `VM Instances` -> `Create Instance`).
     ```
     Name: whatever name you would like to call this VM (crime-vm)
     Region, Zone: select a region near you, same with Zone (us-east1-b)
     Machine type: Standard, 4vCPu, 16 GB Memory (e2-standard-4)
     Operating system: Ubuntu
     Version: Ubuntu 20.04 LTS
-    Boot disk size: 20Gb.
+    Boot disk size: 30Gb.
     ```
     ![vm_name](/images/01_vm_name.png)
     ![vm_disk](/images/01_vm_disk.png)
 
-    Whe VM is created, note the external IP address.
+    When VM is created, note the external IP address.
 
 7. Connect to created VM from terminal (Copy an external ip of created VM): 
     ```
@@ -152,15 +155,14 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     ```
     scp ~/.gc/crime-trends-explorer-user-key.json de_user@crime-vm:~/.gc/
     ```
+   Also copy this key to your folder with project in VM.
 7. **(In Remote VM)** Configure gcloud with your service account .json file:
-   - Setup **GOOGLE_APPLICATION_CREDENTIALS**:
+   - If needed change **<path-to-your-key-file>** in file `setup/activate_service_account.sh` to your value
+   - Run command:
+       ```
+      bash ./setup/activate_service_account.sh
       ```
-      export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.gc/crime-trends-explorer-user-key.json"
-      ```
-   - Authenticate cli:
-      ```
-      gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
-      ```
+   - Log out and log back
 
 ### Step 3. Run Terraform to deploy your infrastructure to your Google Cloud Project **(In Remote VM)**
 
@@ -170,14 +172,226 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     ```
     terraform -chdir="./terraform" init
     ```
-2) Build a deployment plan:
+2) Build a deployment plan (change `crime-trends-explorer` to your `project_id` if needed):
     ```
     terraform -chdir="./terraform" plan -var="project_id=crime-trends-explorer"
     ```
-3) Apply the deployment plan and deploy the infrastructure:
+3) Apply the deployment plan and deploy the infrastructure (change `crime-trends-explorer` to your `project_id` if needed). If needed type `yes` to accept actions:
     ```
     terraform -chdir="./terraform" apply -var="project_id=crime-trends-explorer"
     ```
+4) Go to Google Cloud Console to make sure that infrastructure is created:
+    - Google Cloud Storage:
+   ![03_bucket.png](/images/03_bucket.png)
+    - BigQuery
+   ![03_bigquery.png](/images/03_bigquery.png)
+    - DataProc
+   ![03_dataproc.png](/images/03_dataproc.png)
+
+Step . Install Spark.
+1. In VM Remote run:
+    ```
+    bash ./crime-reports-data/setup/install_spark.sh
+    ```
+2. **IMPORTANT**: Log out and log back in.
+3. Go to work dir and create `lib` folder and download GCS connector:
+```
+cd ~/crime-reports-data/flows/
+mkdir lib
+cd lib
+gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hadoop3-2.2.5.jar
+```
+
+Upload spark job file to gcs bucket:
+```
+gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-trends-explorer/code/spark_job.py
+```
+
+### Step 4. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage **(In Remote VM)**
+1) Build Docker image in Remote VM:
+    ```
+    make docker-build
+    ```
+2) Run docker-compose. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
+    ```
+    make docker-up
+    ```
+   For stop:
+    ```
+    make docker-down
+    ```
+3) Run python script to create blocks for Prefect:
+    ```
+    make create-block
+    ```
+4) Create a Prefect Flow deployment to:
+    - download datasets from web
+    - upload them into Goggle Cloud Storage
+    - upload spark_job file to Goggle Cloud Storage
+    - submit spark job to DataProcCluster. Spark job will do:
+      - read csv files
+      - modify columns
+      - save to parquet
+      - save to Big Query
+    ```
+    make ingest-data
+    ```
+5) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
+    ```
+    make ingest-data-schedule
+    ```
+
+
+1) Build Docker image in Remote VM:
+    ```
+    docker build -t crime-trends:v001 .
+    or
+    docker build -t crime-trends:v001 --no-cache --progress plain .
+    ```
+
+docker-compose up  
+docker-compose up -d  
+docker-compose down
+
+
+docker exec -it \
+        my-crime-trends-container \
+        python flows/deploy_ingest.py \
+        --name crime-trends-explorer
+
+docker-compose exec my-crime-trends-container \
+    python flows/deploy_ingest.py \
+        --name crime-trends-explorer \
+        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
+
+docker-compose run my-crime-trends-container \
+    python flows/deploy_ingest.py \
+        --name crime-trends-explorer \
+        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
+
+
+2) Create Docker and start it. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
+    ```
+    docker run -it -d -p 4200:4200 -p 4040:4040 \
+        --name=my-crime-trends-container \
+        crime-trends:v001
+    ```
+   For stop:
+    ```
+    docker stop my-crime-trends-container
+    ```
+3) Create a Prefect Flow deployment to:
+    - download datasets from web
+    - upload them into the Goggle Cloud Storage
+    - upload spark_job file to the Goggle Cloud Storage
+    - 
+    ```
+    docker exec -it \
+        my-crime-trends-container \
+        python flows/deploy_ingest.py \
+        --name crime-trends-explorer
+    ```
+4) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
+    ```
+    docker exec -it \
+        my-crime-trends-container \
+        python flows/deploy_ingest.py \
+        --name crime-trends-explorer \
+        --cron "0 2 * * *"
+    ```
+5) To check logs (interactively):
+    ```
+    docker logs -f my-crime-trends-container
+    ```
+6) To stop docker container:
+    ```
+    docker stop my-crime-trends-container
+    ```
+
+Run spark_save_parquet.py
+    ```
+    docker exec -it \
+        my-crime-trends-container \
+        python flows/spark_save_parquet.py
+    ```
+
+docker exec -it my-crime-trends-container bash
+
+$ prefect orion start
+http://127.0.0.1:4200
+
+$ prefect agent start --work-queue "default"
+
+python flows/blocks/make_gcp_blocks.py
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer \
+    --cron "0 2 * * *"
+
+???
+$ prefect block register -m prefect_gcp
+
+# Create prefect block
+block-create:
+	docker-compose run job flows/gcp_blocks.py
+
+# Run and set schedule for data ingestion
+ingest-data:
+	docker-compose run job flows/deploy_ingest.py \
+		--name "github-data" \
+		--params='{"year": 2023, "months":[1,2,3,4], "days":["current"], "kwargs" : {"CHUNK_SIZE":${CHUNK_SIZE}, "GCP_PROJECT_ID":${GCP_PROJECT_ID}, "GCS_BUCKET_ID":${GCS_BUCKET_ID}, "GCS_PATH":${GCS_PATH} } }'
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer
+
+python flows/deploy_ingest.py \
+    --name crime-trends-explorer \
+    --cron "0 2 * * *"
+
+
+docker build -t crime-trends:v001 .
+
+docker run -it \
+    --name=my-crime-trends-container \
+    --network=prefect-network \
+    -e PREFECT__CLOUD__API_URL=http://orion:4200/api \
+    -e PREFECT__LOGGING__LEVEL=DEBUG \
+    crime-trends:v001 \
+    --name=crime-trends-explorer
+
+docker run -it \
+    --network=prefect-network \
+    crime-trends:v001
+
+# docker run -it \
+#    --network=prefect-network \
+#    crime-trends:v001 \
+#    python deploy_ingest.py --name=crime-trends-explorer
+
+docker run -it \
+   --network=prefect-network \
+   crime-trends:v001 \
+   --name=crime-trends-explorer
+
+docker run --network <project_name>_default -e PREFECT__CLOUD__API_URL=http://orion:4200/api -e PREFECT__LOGGING__LEVEL=DEBUG my-deployment
+
+
+docker run -it \
+  crime-trends:v001 \
+  --name crime-trends-explorer \
+  --cron "0 2 * * *"
+
+For checking:
+docker build -t cr_tst --no-cache --progress plain .
+
+# Running up prefect server and agent
+docker-spin-up:
+	chmod +x script/build.sh && script/build.sh
+	docker-compose up -d server
+	docker-compose up -d agent
 
 
 

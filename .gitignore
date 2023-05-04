@@ -1,4 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
 /venv/
 
 /.git/
 /.idea/
+
+/data/
+/crime-trends-explorer-user-key.json
+/flows/lib/

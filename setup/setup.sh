@@ -9,6 +9,8 @@ sudo apt-get update -y
 sudo apt-get upgrade -y
 # Install unzip if not already installed
 sudo apt-get install -y unzip
+# Install make
+sudo apt install make -y
 
 # Create a directory for service-account-key
 mkdir -p $HOME/.gc

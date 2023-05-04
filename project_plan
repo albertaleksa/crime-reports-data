@@ -1,0 +1,40 @@
+Using Prefect, Dataproc Cluster, and dbt together allows you to create robust and flexible
+data engineering pipelines that leverage the strengths of each tool. Here's an example of
+how you can use all three tools in a data engineering project:
+
+1. Workflow orchestration with Prefect: Define your data workflows using Prefect, which will
+orchestrate the entire pipeline, including tasks like data extraction, transformation,
+loading (ETL), Spark jobs on Dataproc Cluster, and dbt transformations.
+2. Running Spark jobs on Dataproc Cluster: Use Prefect to submit Spark jobs to a Dataproc
+Cluster for large-scale data processing tasks, such as complex data transformations or
+advanced analytics. This allows you to leverage the managed Spark service provided by GCP
+and its seamless integration with other GCP services.
+3. Data transformation with dbt: After processing your data using Spark on Dataproc Cluster,
+load the transformed data into a data warehouse like BigQuery, Snowflake, or Redshift.
+Use dbt to perform further data modeling and transformations within the data warehouse using
+SQL-based data modeling. This step helps ensure data consistency and quality across your
+data pipelines.
+4. Integration of dbt into Prefect workflows: You can use Prefect's prefect.tasks.dbt module
+to execute dbt commands as part of your Prefect workflows. This allows you to automate the
+entire pipeline, including the dbt transformations, and manage the pipeline execution, error
+handling, and retries.
+5. Monitoring and scheduling: Use Prefect's UI and scheduling capabilities to monitor the
+status of your workflows, set up schedules for recurring tasks, and receive notifications
+about task failures or retries.
+
+By combining Prefect, Dataproc Cluster, and dbt, you can create scalable, flexible, and
+efficient data engineering pipelines that cover a wide range of data processing needs.
+This combination is particularly useful when you need to orchestrate complex data workflows
+that involve large-scale data processing with Spark, advanced data modeling and transformation
+with dbt, and seamless integration with GCP services.
+
+
+Problem Description:
+
+The ability to effectively process, analyze, and visualize large volumes of data is a critical skill for data engineers. Mastering the tools and techniques used in data engineering is essential for success in the field.
+
+"CrimeTrendsExplorer" is designed as a final project to showcase the skills acquired in a data engineering course. The project focuses on ingesting, processing, and analyzing crime reports data from Austin, Los Angeles, and San Diego across different years, highlighting the ability to work with diverse data sources and real-world problems.
+
+Throughout the development of "CrimeTrendsExplorer," various data engineering tools and techniques, such as Spark, DataProc Cluster, and dbt, will be utilized. The project will also involve the creation of a data pipeline, orchestration using Prefect, deployment on Google Cloud Platform, and visualization using Looker.
+
+By completing the "CrimeTrendsExplorer" project, students will demonstrate their proficiency in handling real-world data engineering challenges, consolidating their learning, and showcasing their skills to potential employers and collaborators. Additionally, the project serves as an opportunity to contribute to the understanding of crime trends and patterns across multiple cities, supporting data-driven decision-making for law enforcement agencies, policymakers, researchers, and the public.
