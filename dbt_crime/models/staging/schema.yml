@@ -1,0 +1,76 @@
+version: 2
+
+sources:
+    - name: staging
+      # for bigquery:
+      database: crime-trends-explorer
+      schema: raw_crime_reports
+
+      tables:
+          - name: austin_crimedata
+          - name: la_crimedata
+          - name: sd_crimedata
+          # freshness:
+           # error_after: {count: 6, period: hour}
+
+models:
+    - name: stg_austin_crimedata
+      description: >
+        This dataset contains a record of incidents that the Austin Police Department responded to and wrote a report.
+        Please note one incident may have several offenses associated with it, but this dataset only depicts the 
+        highest level offense of that incident. Data is from 2003 to present. This dataset is updated weekly. 
+        Understanding the following conditions will allow you to get the most out of the data provided. 
+        Due to the methodological differences in data collection, different data sources may produce different 
+        results. This database is updated weekly, and a similar or same search done on different dates can 
+        produce different results. Comparisons should not be made between numbers generated with this database 
+        to any other official police reports. Data provided represents only calls for police service where a 
+        report was written. Totals in the database may vary considerably from official totals following 
+        investigation and final categorization. Therefore, the data should not be used for comparisons 
+        with Uniform Crime Report statistics. The Austin Police Department does not assume any liability 
+        for any decision made or action taken or not taken by the recipient in reliance upon any information or 
+        data provided. Pursuant to section 552.301 (c) of the Government Code, the City of Austin has 
+        designated certain addresses to receive requests for public information sent by electronic mail.
+      columns:
+          - name: incident_num
+            description: Primary key for this table
+            tests:
+              - unique:
+                  severity: warn
+              - not_null:
+                  severity: warn
+          - name: crime_datetime
+            description: The date and time of crime.
+
+    - name: stg_la_crimedata
+      description: >
+        This dataset reflects incidents of crime in the City of Los Angeles dating back to 2020. 
+        This data is transcribed from original crime reports that are typed on paper and therefore 
+        there may be some inaccuracies within the data. Some location fields with missing data are 
+        noted as (0°, 0°). Address fields are only provided to the nearest hundred block in order to maintain privacy. 
+        This data is as accurate as the data in the database.
+      columns:
+        - name: incident_num
+          description: Primary key for this table
+          tests:
+            - unique:
+                severity: warn
+            - not_null:
+                severity: warn
+        - name: crime_datetime
+          description: The date and time of crime.
+
+    - name: stg_sd_crimedata
+      description: >
+        Calls dispatched by the San Diego Police Department’s communications dispatch center. 
+        Data regarding sensitive incidents including domestic violence, child abuse, suicide, 
+        sex crimes and stalking are excluded.
+      columns:
+        - name: incident_num
+          description: Primary key for this table
+          tests:
+            - unique:
+                severity: warn
+            - not_null:
+                severity: warn
+        - name: crime_datetime
+          description: The date and time of crime.

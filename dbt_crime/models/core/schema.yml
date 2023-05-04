@@ -1,0 +1,22 @@
+version: 2
+
+models:
+    - name: sd_areas
+      description: >
+        San Diego Police Department beats.
+
+    - name: sd_call_types
+      description: >
+        Call types for San Diego. 
+
+    - name: sd_disposition_codes
+      description: >
+        Call disposition codes used by the San Diego Police Department’s communications dispatch center. 
+
+    - name: fact_sd_crimedata
+      description: >
+        Crimes in San Diego. The table contains records for areas, call types and disposition codes.
+
+    - name: fact_crimedata
+      description: >
+        Crimes in Austin, Los Angeles and San Diego in one table.

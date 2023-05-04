@@ -1,8 +1,15 @@
 SHELL := /bin/bash
 
+include .env
+
 # Build docker image for Data Pipeline
 docker-build:
+	docker build -t crime-trends:v001 .
+
+# Build docker image for Data Pipeline without caching
+docker-build-no-cache:
 	docker build -t crime-trends:v001 --no-cache --progress plain .
+
 
 # Start docker-compose
 docker-up:
@@ -12,6 +19,9 @@ docker-up:
 docker-down:
 	docker-compose down
 
+# To watch agent's logs
+docker-agent-logs:
+	docker logs -f my-crime-trends-agent
 
 # Run python script to create blocks for Prefect
 create-block:
@@ -27,7 +37,7 @@ ingest-data:
 		\"la_url_1\": \"https://data.lacity.org/api/views/63jg-8b9z/rows.csv\", \
 		\"la_url_2\": \"https://data.lacity.org/api/views/2nrs-mtv8/rows.csv\", \
 		\"sd_url\": \"https://seshat.datasd.org/pd/pd_calls_for_service\", \
-		\"temp_gcs_bucket\": \"dataproc-temp-us-east1-734718096086-acfokoys\", \
+		\"temp_gcs_bucket\": \"${DATAPROC_TEMP_BUCKET}\", \
 		\"input_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/aus/aus_2003_2023.csv\", \
 		\"output_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/aus/\", \
 		\"output_bq_aus\": \"raw_crime_reports.austin_crimedata\", \
@@ -48,7 +58,7 @@ ingest-data-schedule:
 		\"la_url_1\": \"https://data.lacity.org/api/views/63jg-8b9z/rows.csv\", \
 		\"la_url_2\": \"https://data.lacity.org/api/views/2nrs-mtv8/rows.csv\", \
 		\"sd_url\": \"https://seshat.datasd.org/pd/pd_calls_for_service\", \
-		\"temp_gcs_bucket\": \"dataproc-temp-us-east1-734718096086-acfokoys\", \
+		\"temp_gcs_bucket\": \"${DATAPROC_TEMP_BUCKET}\", \
 		\"input_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/aus/aus_2003_2023.csv\", \
 		\"output_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/aus/\", \
 		\"output_bq_aus\": \"raw_crime_reports.austin_crimedata\", \

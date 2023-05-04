@@ -3,27 +3,60 @@ Final Project for Data Engineering Zoomcamp Course
 
 ## Table of contents
 
-- [Problem Description](#problem-description)
-- [Dataset](#dataset)
+- [Problem Description](#problem-description):
+  - [Objective](#objective)
+  - [Data Sources](#data-sources)
+  - [Data Processing](#data-processing)
+  - [Data Storage](#data-storage)
+  - [Analysis and Visualization](#analysis-and-visualization)
+
 - [Technologies & Tools](#technologies--tools)
 - [Data Pipeline Architecture diagram](#data-pipeline-architecture-diagram)
 - [Pipeline explanation](#pipeline-explanation)
 - [Dashboard & Results](#dashboard--results)
 - [How to reproduce](#how-to-reproduce)
-  - [Step 1. Set Up Cloud Environment](#step-1-set-up-cloud-environment)
-  - [Step 2.]()
+  - [Step 1. Set Up Cloud Environment. Using Google Console and local terminal](#step-1-set-up-cloud-environment-using-google-console-and-local-terminal)
+  - [Step 2. Set Up Cloud Environment. Using VM Terminal](#step-2-set-up-cloud-environment-using-vm-terminal)
+  - [Step 3. Run Terraform to deploy your infrastructure to your Google Cloud Project **(In Remote VM)**](#step-3-run-terraform-to-deploy-your-infrastructure-to-your-google-cloud-project-in-remote-vm)
+  - [Step 4. Install Spark in VM (Optional. Data pipeline will work in Docker container)](#step-4-install-spark-in-vm--optional-data-pipeline-will-work-in-docker-container--)
+  - [Step 5. Run pipeline using Prefect](#step-5-run-pipeline-using-prefect-for-orchestration-in-docker-container-which-copy-datasets-from-web-to-google-cloud-storage-then-save-in-parquet-save-to-big-query-and-process-using-dbt-in-remote-vm)
+  - [Step 6. dbt transformation data in BigQuery](#step-6-dbt-transformation-data-in-bigquery-in-remote-vm)
 - [Future Improvements](#future-improvements)
 - [Credits](#credits)
 
 ---
 
-## Problem Description
+## Problem Description: CrimeTrendsExplorer - A Multi-City Crime Analysis Project
 
+The CrimeTrendsExplorer is a comprehensive data engineering project aimed at processing, analyzing, and exploring crime records data for three major cities in the United States: Austin, Los Angeles, and San Diego. The project covers several years of data, providing valuable insights and trends that can help law enforcement agencies, city planners, researchers, and the general public make informed decisions.
 
-_[Back to the top](#table-of-contents)_
+### Objective
+The primary goal of the CrimeTrendsExplorer project is to build a robust data pipeline that ingests, processes, and transforms raw crime data from multiple sources, and stores the results in a highly accessible, structured, and queryable format. The project will involve various data engineering tasks, including data ingestion, data cleaning, data validation, data transformation, and data storage.
 
-## Dataset
+### Data Sources
+The crime records data will be obtained from the following sources:
 
+1. Austin: Austin Police Department's Public Data Portal (https://data.austintexas.gov/)
+2. Los Angeles: Los Angeles Open Data Portal (https://data.lacity.org/)
+3. San Diego: San Diego Data Portal (https://data.sandiego.gov/)
+
+### Data Processing
+The raw crime data will be processed using Apache Spark, which provides a highly scalable and distributed computing framework for big data processing. The pipeline will involve the following steps:
+
+1. Ingest raw crime data from multiple sources in various formats (CSV, JSON, etc.).
+2. Perform data cleaning, validation, and preprocessing to ensure data consistency and integrity.
+3. Transform and enrich the data, extracting relevant features and aggregating the data as needed.
+4. Write the processed data to a partitioned and clustered table in Google BigQuery for efficient querying and analysis.
+
+### Data Storage
+The processed crime data will be stored in Google BigQuery, a highly-scalable and fully-managed data warehouse solution that enables fast and efficient querying and analysis. The data will be partitioned and clustered to optimize query performance, and the schema will be designed to support easy exploration and analysis of the data.
+
+# Analysis and Visualization
+The CrimeTrendsExplorer project will provide a foundation for further analysis and visualization of the crime data. The processed data can be used to generate insights and trends, such as identifying high-crime areas, understanding seasonal patterns, and exploring the relationship between different types of crimes. 
+
+For visualization purposes, the project will utilize Looker (Google Data Studio), a powerful and user-friendly data visualization tool that integrates seamlessly with Google BigQuery. Looker enables users to create interactive charts, dashboards, and reports, allowing them to explore the data and derive actionable insights without the need for extensive technical expertise. Users can customize and share their visualizations, making it easy for stakeholders to access and interpret the data.
+
+By leveraging modern data engineering technologies and best practices, the CrimeTrendsExplorer project aims to create a powerful platform for understanding and exploring crime patterns in major cities, ultimately contributing to a safer and more informed society.
 
 _[Back to the top](#table-of-contents)_
 
@@ -34,6 +67,9 @@ _[Back to the top](#table-of-contents)_
 
 ## Data Pipeline Architecture diagram
 
+![data_engineering_architecture.png](/images/data_engineering_architecture.png)
+
+
 
 _[Back to the top](#table-of-contents)_
 
@@ -43,6 +79,8 @@ _[Back to the top](#table-of-contents)_
 _[Back to the top](#table-of-contents)_
 
 ## Dashboard & Results
+
+![dashboard.png](/images/dashboard.png)
 
 
 _[Back to the top](#table-of-contents)_
@@ -138,8 +176,9 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    * download and install **Anaconda**. 
    * install **Docker**
    * Give permission to run **docker** commands **without sudo** in VM
-   * Install docker-compose
-   * Install Terraform
+   * Install **docker-compose**
+   * Install **Terraform**
+   * Install **make**
 
 4. **IMPORTANT**: Log out and log back in so that your group membership is re-evaluated.
 
@@ -187,8 +226,9 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    ![03_bigquery.png](/images/03_bigquery.png)
     - DataProc
    ![03_dataproc.png](/images/03_dataproc.png)
+5) Copy a Dataproc temp bucket name from gcs buckets to file `.env` in field `DATAPROC_TEMP_BUCKET`.
 
-Step . Install Spark.
+### Step 4. Install Spark in VM (Optional. Data pipeline will work in Docker container).
 1. In VM Remote run:
     ```
     bash ./crime-reports-data/setup/install_spark.sh
@@ -202,29 +242,30 @@ cd lib
 gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hadoop3-2.2.5.jar
 ```
 
-Upload spark job file to gcs bucket:
-```
-gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-trends-explorer/code/spark_job.py
-```
-
-### Step 4. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage **(In Remote VM)**
+### Step 5. Run pipeline using Prefect for orchestration in Docker Container which copy datasets from web to Google Cloud Storage, then save in parquet, save to Big Query and process using dbt **(In Remote VM)**
 1) Build Docker image in Remote VM:
     ```
     make docker-build
     ```
-2) Run docker-compose. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
+2) Run docker-compose in background. It starts Prefect Orion Server, Prefect Agent, Prefect db and container which will execute pipeline:
     ```
     make docker-up
     ```
-   For stop:
+   To stop:
     ```
     make docker-down
     ```
-3) Run python script to create blocks for Prefect:
+3) For monitoring and run/schedule pipelines using Prefect UI it's necessary to forward port `4200` (I used PyCharm Pro for this) and open url: `http://127.0.0.1:4200/` on local machine.
+    ![05_orion_ui.png](/images/05_orion_ui.png)
+
+4) Run python script to create blocks for Prefect:
     ```
     make create-block
     ```
-4) Create a Prefect Flow deployment to:
+   You can check in UI that blocks for `GCP Credentials` and `GCS Bucket` are created:
+    ![05_orion_blocks.png](/images/05_orion_blocks.png)
+
+5) Create a Prefect Flow deployment to:
     - download datasets from web
     - upload them into Goggle Cloud Storage
     - upload spark_job file to Goggle Cloud Storage
@@ -232,169 +273,33 @@ gsutil cp /app/flows/spark_job.py gs://crime_trends_explorer_data_lake_crime-tre
       - read csv files
       - modify columns
       - save to parquet
-      - save to Big Query
+      - save to Big Query with daily **partitioning** by `crime_date` column. This type of partitioning is used to improve performance because I will make aggregation by this field to analyse data. 
     ```
     make ingest-data
     ```
-5) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
+6) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
     ```
     make ingest-data-schedule
     ```
-
-
-1) Build Docker image in Remote VM:
+   ![05_deployments.png](/images/05_deployments.png)
+   
+7) To check Agent's logs (interactively):
     ```
-    docker build -t crime-trends:v001 .
-    or
-    docker build -t crime-trends:v001 --no-cache --progress plain .
+    make docker-agent-logs
     ```
 
-docker-compose up  
-docker-compose up -d  
-docker-compose down
-
-
-docker exec -it \
-        my-crime-trends-container \
-        python flows/deploy_ingest.py \
-        --name crime-trends-explorer
+### Step 6. dbt transformation data in BigQuery **(In Remote VM)**
+1) Build dbt:
+dbt build
+2) Build dbt for production:
+dbt build -t prod --vars 'is_test_run: false'
+3) Create visualization
 
 docker-compose exec my-crime-trends-container \
-    python flows/deploy_ingest.py \
-        --name crime-trends-explorer \
-        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
+    dbt build
 
-docker-compose run my-crime-trends-container \
-    python flows/deploy_ingest.py \
-        --name crime-trends-explorer \
-        --params='{"aus_url": "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"}'
-
-
-2) Create Docker and start it. It starts in the background. Before running next command wait about 40-60 seconds (to make sure that Prefect Orion and Prefect Agent have enough time to start and blocks are created):
-    ```
-    docker run -it -d -p 4200:4200 -p 4040:4040 \
-        --name=my-crime-trends-container \
-        crime-trends:v001
-    ```
-   For stop:
-    ```
-    docker stop my-crime-trends-container
-    ```
-3) Create a Prefect Flow deployment to:
-    - download datasets from web
-    - upload them into the Goggle Cloud Storage
-    - upload spark_job file to the Goggle Cloud Storage
-    - 
-    ```
-    docker exec -it \
-        my-crime-trends-container \
-        python flows/deploy_ingest.py \
-        --name crime-trends-explorer
-    ```
-4) Schedule a deployment in prefect to run daily at 02:00 am (if needed):
-    ```
-    docker exec -it \
-        my-crime-trends-container \
-        python flows/deploy_ingest.py \
-        --name crime-trends-explorer \
-        --cron "0 2 * * *"
-    ```
-5) To check logs (interactively):
-    ```
-    docker logs -f my-crime-trends-container
-    ```
-6) To stop docker container:
-    ```
-    docker stop my-crime-trends-container
-    ```
-
-Run spark_save_parquet.py
-    ```
-    docker exec -it \
-        my-crime-trends-container \
-        python flows/spark_save_parquet.py
-    ```
-
-docker exec -it my-crime-trends-container bash
-
-$ prefect orion start
-http://127.0.0.1:4200
-
-$ prefect agent start --work-queue "default"
-
-python flows/blocks/make_gcp_blocks.py
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer \
-    --cron "0 2 * * *"
-
-???
-$ prefect block register -m prefect_gcp
-
-# Create prefect block
-block-create:
-	docker-compose run job flows/gcp_blocks.py
-
-# Run and set schedule for data ingestion
-ingest-data:
-	docker-compose run job flows/deploy_ingest.py \
-		--name "github-data" \
-		--params='{"year": 2023, "months":[1,2,3,4], "days":["current"], "kwargs" : {"CHUNK_SIZE":${CHUNK_SIZE}, "GCP_PROJECT_ID":${GCP_PROJECT_ID}, "GCS_BUCKET_ID":${GCS_BUCKET_ID}, "GCS_PATH":${GCS_PATH} } }'
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer
-
-python flows/deploy_ingest.py \
-    --name crime-trends-explorer \
-    --cron "0 2 * * *"
-
-
-docker build -t crime-trends:v001 .
-
-docker run -it \
-    --name=my-crime-trends-container \
-    --network=prefect-network \
-    -e PREFECT__CLOUD__API_URL=http://orion:4200/api \
-    -e PREFECT__LOGGING__LEVEL=DEBUG \
-    crime-trends:v001 \
-    --name=crime-trends-explorer
-
-docker run -it \
-    --network=prefect-network \
-    crime-trends:v001
-
-# docker run -it \
-#    --network=prefect-network \
-#    crime-trends:v001 \
-#    python deploy_ingest.py --name=crime-trends-explorer
-
-docker run -it \
-   --network=prefect-network \
-   crime-trends:v001 \
-   --name=crime-trends-explorer
-
-docker run --network <project_name>_default -e PREFECT__CLOUD__API_URL=http://orion:4200/api -e PREFECT__LOGGING__LEVEL=DEBUG my-deployment
-
-
-docker run -it \
-  crime-trends:v001 \
-  --name crime-trends-explorer \
-  --cron "0 2 * * *"
-
-For checking:
-docker build -t cr_tst --no-cache --progress plain .
-
-# Running up prefect server and agent
-docker-spin-up:
-	chmod +x script/build.sh && script/build.sh
-	docker-compose up -d server
-	docker-compose up -d agent
-
-
-
+docker-compose exec my-crime-trends-container \
+    cd dbt_crime && dbt build
 
 _[Back to the top](#table-of-contents)_
 

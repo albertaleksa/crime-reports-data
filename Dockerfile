@@ -9,8 +9,11 @@ RUN mkdir -p /app &&\
 # Set working directory
 WORKDIR /app
 
+RUN mkdir -p /root/.dbt
+
 COPY requirements.txt .
 COPY .env .
+COPY profiles.yml .
 # In future better use volumes with path to project folder in VM
 COPY crime-trends-explorer-user-key.json /.
 ENV KEY_FILE="/crime-trends-explorer-user-key.json"
@@ -66,13 +69,6 @@ RUN gcloud auth activate-service-account --key-file="${KEY_FILE}"
 
 # Make ports 80, 4200 available to the world outside this container
 EXPOSE 80 4200 4040
-
-# CMD ["prefect", "orion", "start"]
-
-# RUN prefect orion start &
-
-# RUN python flows/blocks/make_gcp_blocks.py
-# ENTRYPOINT ["python", "prefect/flows/deploy_ingest.py"]
 
 
 # Set entry point as bash
