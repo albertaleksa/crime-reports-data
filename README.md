@@ -1,6 +1,8 @@
 # CrimeTrendsExplorer: A Multi-City Crime Analysis Project
 Final Project for Data Engineering Zoomcamp Course
 
+![dashboard.png](/images/dashboard.png)
+
 ## Table of contents
 
 - [Problem Description](#problem-description):
@@ -9,7 +11,6 @@ Final Project for Data Engineering Zoomcamp Course
   - [Data Processing](#data-processing)
   - [Data Storage](#data-storage)
   - [Analysis and Visualization](#analysis-and-visualization)
-
 - [Technologies & Tools](#technologies--tools)
 - [Data Pipeline Architecture diagram](#data-pipeline-architecture-diagram)
 - [Pipeline explanation](#pipeline-explanation)
@@ -62,6 +63,20 @@ _[Back to the top](#table-of-contents)_
 
 ## Technologies & Tools
 
+1. **Apache Spark**: A highly scalable and distributed computing framework for big data processing, used for data ingestion, cleaning, transformation, and enrichment.
+2. **Docker**: A platform for developing, shipping, and running applications in containers, enabling consistent and portable deployment across environments.
+3. **Docker Compose**: A tool for defining and running multi-container Docker applications, simplifying the management and orchestration of containers.
+4. **Google BigQuery**: A highly-scalable and fully-managed data warehouse solution that provides fast and efficient querying and analysis.
+5. **Google Cloud Storage**: A highly-durable and scalable object storage service for storing and managing data.
+6. **Google Cloud DataProc**: A fully-managed service for running Apache Spark and other big data processing tools on Google Cloud.
+7. **Prefect**: A workflow management system for building, scheduling, and monitoring data pipelines, used for orchestrating the various tasks in the project.
+8. **dbt (Data Build Tool)**: A modern data transformation tool for data warehouses, used for transforming and modeling data in BigQuery.
+9. **Python**: A versatile programming language used for various data engineering tasks, such as writing Apache Spark jobs and Prefect flows.
+10. **Looker (Google Data Studio)**: A powerful and user-friendly data visualization tool that integrates with Google BigQuery for creating interactive charts, dashboards, and reports.
+11. **Terraform**: An infrastructure-as-code tool for provisioning and managing cloud resources, used for automating the creation and configuration of Google Cloud resources.
+
+These technologies and tools were employed throughout the CrimeTrendsExplorer project to create a robust, efficient, and scalable data pipeline, as well as to enable effective analysis and visualization of the processed crime data.
+
 
 _[Back to the top](#table-of-contents)_
 
@@ -70,11 +85,27 @@ _[Back to the top](#table-of-contents)_
 ![data_engineering_architecture.png](/images/data_engineering_architecture.png)
 
 
-
 _[Back to the top](#table-of-contents)_
 
 ## Pipeline explanation
 
+This project processes crime records data for 3 cities (Austin, Los Angeles, and San Diego) for several years, providing insights and analysis of crime trends across these cities.
+
+1. **Data Ingestion**: In this stage, the raw crime data from the respective cities is fetched from various web sources as CSV files. The raw data is then stored in Google Cloud Storage, along with the Python file containing the Apache Spark job.
+
+2. **Data Transformation**: The raw data is processed using Apache Spark, running on a DataProc Cluster. The Spark job performs tasks such as data cleaning, transformation, enrichment, and partitioning. The transformed data is then directly loaded into Google BigQuery, a fully-managed data warehouse solution.
+
+3. **Data Modeling**: The transformed data is further processed using dbt (Data Build Tool) to create meaningful and structured data models in Google BigQuery.
+
+4. **Data Partitioning & Clustering**: The data is partitioned and clustered in BigQuery to optimize query performance and storage efficiency. Partitioning is done on a monthly basis, while clustering is done on a daily basis.
+
+5. **Data Visualization**: The processed and modeled data in BigQuery is then used to create interactive visualizations, charts, and dashboards in Looker (Google Data Studio), enabling users to explore and analyze crime trends across cities.
+
+6. **Pipeline Orchestration**: The entire pipeline is orchestrated using Prefect, a workflow management system that schedules, manages, and monitors the various tasks in the pipeline, ensuring the smooth and efficient operation of the data pipeline.
+
+7. **Dockerization**: All components of the project, including the Spark job, Prefect pipeline, and dbt, are dockerized to ensure a consistent and portable environment for development, testing, and deployment.
+
+This pipeline allows for the efficient processing and analysis of large-scale crime data, enabling users to explore trends, patterns, and insights across multiple cities and timeframes.
 
 _[Back to the top](#table-of-contents)_
 
@@ -82,6 +113,13 @@ _[Back to the top](#table-of-contents)_
 
 ![dashboard.png](/images/dashboard.png)
 
+### Results:
+- Over the last 4 years, the number of crimes per month has remained relatively stable.
+- The number of crimes in Austin has not shown any significant increase or decrease over the analyzed period.
+- In Los Angeles, there has been an increase in the number of crimes in the last 2 years.
+- Conversely, San Diego has experienced a decrease in the number of crimes over the past 2 years.
+- The raw data for Austin and Los Angeles have similar types, which allows for a comparison between the two cities.
+- However, the raw data for San Diego is of a different type compared to the other cities, making a direct comparison with Austin and Los Angeles not feasible.
 
 _[Back to the top](#table-of-contents)_
 
@@ -289,26 +327,40 @@ gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hado
     ```
 
 ### Step 6. dbt transformation data in BigQuery **(In Remote VM)**
-1) Build dbt:
-dbt build
-2) Build dbt for production:
-dbt build -t prod --vars 'is_test_run: false'
-3) Create visualization
-
-docker-compose exec my-crime-trends-container \
+At this moment dbt transformation is working directly from docker container
+1) Build dbt in docker container:
+    ```
     dbt build
-
-docker-compose exec my-crime-trends-container \
-    cd dbt_crime && dbt build
+    ```
+2) Build dbt for production:
+    ```
+    dbt build -t prod --vars 'is_test_run: false'
+    ```
+3) Go to the Looker and create visualization from Big Query table `crime-trends-explorer.prod_crime_reports.fact_crimedata`
 
 _[Back to the top](#table-of-contents)_
 
 ## Future Improvements
 
+- Create tests for all code and sql
+- Move other commands to Make-file to make a reproducibility in less commands
+- Implement CI/CD
+- Add API for extracting data from web 
 
 _[Back to the top](#table-of-contents)_
 
 ## Credits
+
+A special thanks to the instructors for their guidance and support throughout this incredible course. Their expertise and insights have been invaluable in the development of the CrimeTrendsExplorer project. I've learned a lot of useful skills and techniques that have greatly enhanced my knowledge as a data engineer.
+
+- [Alexey Grigorev](https://linkedin.com/in/agrigorev)
+- [Ankush Khanna](https://linkedin.com/in/ankushkhanna2)
+- [Jeff Hale](https://www.linkedin.com/in/-jeffhale/)
+- [Kalise Richmond](https://www.linkedin.com/in/kaliserichmond/)
+- [Sejal Vaidya](https://linkedin.com/in/vaidyasejal)
+- [Victoria Perez Mola](https://www.linkedin.com/in/victoriaperezmola/)
+
+Thank you for providing such a comprehensive and engaging course experience!
 
 
 _[Back to the top](#table-of-contents)_
