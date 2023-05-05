@@ -70,3 +70,17 @@ ingest-data-schedule:
 		\"output_path_sd\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/sd/\", \
 		\"output_bq_sd\": \"raw_crime_reports.sd_crimedata\"}" \
 		--cron "0 2 * * *"
+
+dbt-dev:
+	docker-compose exec \
+		-w /app/dbt_crime \
+		my-crime-trends-container \
+		dbt build --profiles-dir /app/
+
+dbt-prod:
+	docker-compose exec \
+		-w /app/dbt_crime \
+		my-crime-trends-container \
+		dbt build -t prod \
+		--vars 'is_test_run: false' \
+		--profiles-dir /app/

@@ -328,13 +328,13 @@ gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hado
 
 ### Step 6. dbt transformation data in BigQuery **(In Remote VM)**
 At this moment dbt transformation is working directly from docker container
-1) Build dbt in docker container:
+1) Build dbt for dev:
     ```
-    dbt build
+    make dbt-dev
     ```
 2) Build dbt for production:
     ```
-    dbt build -t prod --vars 'is_test_run: false'
+    make dbt-prod
     ```
 3) Go to the Looker and create visualization from Big Query table `crime-trends-explorer.prod_crime_reports.fact_crimedata`
 
