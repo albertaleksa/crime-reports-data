@@ -149,10 +149,10 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
      * Create New Key for this account (json)
    * Download created service-account-key, rename it to `crime-trends-explorer-user-key.json` and put it in `~/.gc` dir (create folder if needed). It's for convenient. Then we'll put it into our VM.
 4. Enable these **APIs** for your project:
-   * https://console.cloud.google.com/apis/library/iam.googleapis.com
-   * https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com
+   * [Identity and Access Management (IAM) API](https://console.cloud.google.com/apis/library/iam.googleapis.com)
+   * [IAM Service Account Credentials API](https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com)
    * Compute Engine API (You'll find it when choose `Compute Engine` menu)
-   * Cloud Dataproc API
+   * [Cloud Dataproc API](https://console.cloud.google.com/marketplace/product/google/dataproc.googleapis.com)
 5. Generate **SSH keys** to login to VM instances. This will generate a 2048 bit rsa ssh keypair, named `gcp` and a comment of `de_user`. The comment (`de_user`) will be the user on VM :
    * In terminal:
    ```
@@ -338,6 +338,17 @@ At this moment dbt transformation is working directly from docker container
     ```
 3) Go to the Looker and create visualization from Big Query table `crime-trends-explorer.prod_crime_reports.fact_crimedata`
 
+### Delete (Optional)
+1) Stop docker-compose:
+    ```
+    make docker-down
+    ```
+2) Delete infrastructure:
+    ```
+    terraform -chdir="./terraform" destroy -var="project_id=crime-trends-explorer"
+    ```
+3) Delete manually temp storage buckets created by the Dataproc cluster.
+4) Delete VM instance (if needed).
 _[Back to the top](#table-of-contents)_
 
 ## Future Improvements
