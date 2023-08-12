@@ -39,4 +39,4 @@ echo "=== Install Terraform..."
 bash "${SCRIPT_DIR}/install_terraform.sh"
 
 # remove tmp directory
-rmdir tmp
+rm -rf tmp
