@@ -15,6 +15,8 @@ sudo apt install make -y
 # Create a directory for service-account-key
 mkdir -p $HOME/.gc
 
+# Create a temp directory for install files
+mkdir -p tmp
 
 # anaconda setup
 echo "=== Anaconda Setup..."
@@ -35,3 +37,6 @@ bash "${SCRIPT_DIR}/install_docker_compose.sh"
 # install Terraform
 echo "=== Install Terraform..."
 bash "${SCRIPT_DIR}/install_terraform.sh"
+
+# remove tmp directory
+rmdir tmp
