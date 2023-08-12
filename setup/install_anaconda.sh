@@ -3,6 +3,9 @@
 # Anaconda setup
 
 echo "=== Run install_anaconda.sh..."
+
+cd tmp
+
 echo "=== Download Anaconda..."
 wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
 

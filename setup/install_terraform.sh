@@ -4,6 +4,8 @@
 
 echo "=== Run install_terraform.sh..."
 
+cd tmp
+
 # Download Terraform
 echo "=== Download Terraform..."
 wget https://releases.hashicorp.com/terraform/1.3.9/terraform_1.3.9_linux_amd64.zip

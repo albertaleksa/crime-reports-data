@@ -260,9 +260,9 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
 4) Go to Google Cloud Console to make sure that infrastructure is created:
     - Google Cloud Storage:
    ![03_bucket.png](/images/03_bucket.png)
-    - BigQuery
+    - BigQuery:
    ![03_bigquery.png](/images/03_bigquery.png)
-    - DataProc
+    - DataProc:
    ![03_dataproc.png](/images/03_dataproc.png)
 5) Copy a Dataproc temp bucket name from gcs buckets to file `.env` in field `DATAPROC_TEMP_BUCKET`.
 
