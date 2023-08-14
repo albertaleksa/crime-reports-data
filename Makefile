@@ -2,6 +2,29 @@ SHELL := /bin/bash
 
 include .env
 
+# Activate service account
+activate-sa:
+	bash ./setup/activate_service_account.sh
+
+
+# Terraform
+# Initialize terraform
+terraform-init:
+	terraform -chdir="./terraform" init
+
+# Build a deployment plan
+terraform-plan:
+	terraform -chdir="./terraform" plan -var="project_id=${PROJECT_ID}"
+
+# Deploy the infrastructure
+terraform-apply:
+	terraform -chdir="./terraform" apply -var="project_id=${PROJECT_ID}" -auto-approve
+
+# Delete infrastructure
+terraform-destroy:
+	terraform -chdir="./terraform" destroy -var="project_id=${PROJECT_ID}" -auto-approve
+
+
 # Build docker image for Data Pipeline
 docker-build:
 	docker build -t crime-trends:v001 .

@@ -236,26 +236,26 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
 7. **(In Remote VM)** Configure gcloud with your service account .json file:
    - If needed change **<path-to-your-key-file>** in file `setup/activate_service_account.sh` to your value
    - Run command:
-       ```
-      bash ./setup/activate_service_account.sh
-      ```
+     ```
+     make activate-sa
+     ```
    - Log out and log back
 
 ### Step 3. Run Terraform to deploy your infrastructure to your Google Cloud Project **(In Remote VM)**
 
-0) If needed you can change variables in `terraform.tfvars` (change region,..)
+0) If needed you can change variables in `terraform.tfvars` (change region,..) and `.env` file
 
 1) Initialize terraform:
     ```
-    terraform -chdir="./terraform" init
+    make terraform-init
     ```
-2) Build a deployment plan (change `crime-trends-explorer` to your `project_id` if needed):
+2) Build a deployment plan (change `crime-trends-explorer` to your `project_id` in `.env` file if needed):
     ```
-    terraform -chdir="./terraform" plan -var="project_id=crime-trends-explorer"
+    make terraform-plan
     ```
-3) Apply the deployment plan and deploy the infrastructure (change `crime-trends-explorer` to your `project_id` if needed). If needed type `yes` to accept actions:
+3) Apply the deployment plan and deploy the infrastructure. If needed type `yes` to accept actions:
     ```
-    terraform -chdir="./terraform" apply -var="project_id=crime-trends-explorer"
+    make terraform-apply
     ```
 4) Go to Google Cloud Console to make sure that infrastructure is created:
     - Google Cloud Storage:
@@ -345,10 +345,11 @@ At this moment dbt transformation is working directly from docker container
     ```
 2) Delete infrastructure:
     ```
-    terraform -chdir="./terraform" destroy -var="project_id=crime-trends-explorer"
+    make terraform-destroy
     ```
 3) Delete manually temp storage buckets created by the Dataproc cluster.
 4) Delete VM instance (if needed).
+
 _[Back to the top](#table-of-contents)_
 
 ## Future Improvements
