@@ -253,7 +253,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     ```
     make terraform-plan
     ```
-3) Apply the deployment plan and deploy the infrastructure. If needed type `yes` to accept actions:
+3) Apply the deployment plan and deploy the infrastructure:
     ```
     make terraform-apply
     ```
@@ -264,7 +264,8 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
    ![03_bigquery.png](/images/03_bigquery.png)
     - DataProc:
    ![03_dataproc.png](/images/03_dataproc.png)
-5) Copy a Dataproc temp bucket name from gcs buckets to file `.env` in field `DATAPROC_TEMP_BUCKET`.
+5) A Dataproc temp bucket name (from gcs buckets) was copied automatically to file `.env` in field `DATAPROC_TEMP_BUCKET`.
+
 
 ### Step 4. Install Spark in VM (Optional. Data pipeline will work in Docker container).
 1. In VM Remote run:

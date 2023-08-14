@@ -19,10 +19,18 @@ terraform-plan:
 # Deploy the infrastructure
 terraform-apply:
 	terraform -chdir="./terraform" apply -var="project_id=${PROJECT_ID}" -auto-approve
+	$(MAKE) update-env
 
 # Delete infrastructure
 terraform-destroy:
 	terraform -chdir="./terraform" destroy -var="project_id=${PROJECT_ID}" -auto-approve
+
+
+# Update a value of the DATAPROC_TEMP_BUCKET variable in the .env file
+update-env:
+	@MY_VARIABLE=$$(terraform -chdir="./terraform" output temp_bucket) && \
+	sed -i '/^DATAPROC_TEMP_BUCKET=/d' .env && \
+	echo "DATAPROC_TEMP_BUCKET=$$MY_VARIABLE" >> .env
 
 
 # Build docker image for Data Pipeline
