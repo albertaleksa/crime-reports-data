@@ -19,7 +19,8 @@ terraform-plan:
 # Deploy the infrastructure
 terraform-apply:
 	terraform -chdir="./terraform" apply -var="project_id=${PROJECT_ID}" -auto-approve
-	$(MAKE) update-env
+	$(MAKE) update-env-temp-bucket
+	$(MAKE) update-env-gcs-name
 
 # Delete infrastructure
 terraform-destroy:
@@ -27,10 +28,16 @@ terraform-destroy:
 
 
 # Update a value of the DATAPROC_TEMP_BUCKET variable in the .env file
-update-env:
+update-env-temp-bucket:
 	@MY_VARIABLE=$$(terraform -chdir="./terraform" output temp_bucket) && \
 	sed -i '/^DATAPROC_TEMP_BUCKET=/d' .env && \
 	echo "DATAPROC_TEMP_BUCKET=$$MY_VARIABLE" >> .env
+
+# Update a value of the DATA_LAKE_BUCKET_NAME variable in the .env file
+update-env-gcs-name:
+	@MY_VARIABLE=$$(terraform -chdir="./terraform" output gcs_name) && \
+	sed -i '/^DATA_LAKE_BUCKET_NAME=/d' .env && \
+	echo "DATA_LAKE_BUCKET_NAME=$$MY_VARIABLE" >> .env
 
 
 # Build docker image for Data Pipeline

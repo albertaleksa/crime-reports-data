@@ -1,0 +1,8 @@
+# Get population for Texas by zip codes for 2020
+https://api.census.gov/data/2020/dec/dhc?get=NAME,P1_001N&for=zip%20code%20tabulation%20area%20(or%20part):*&in=state:48
+
+# Get population fo Austin for 2020
+https://api.census.gov/data/2020/dec/dhc?get=NAME,P1_001N&for=place:05000&in=state:48
+
+# Estimate population for Texas cities for 2020-2022
+https://www2.census.gov/programs-surveys/popest/datasets/2020-2022/cities/totals/sub-est2022_48.csv
