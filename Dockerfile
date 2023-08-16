@@ -15,8 +15,8 @@ COPY requirements.txt .
 COPY .env .
 COPY profiles.yml .
 # In future better use volumes with path to project folder in VM
-COPY crime-trends-explorer-user-key.json /.
-ENV KEY_FILE="/crime-trends-explorer-user-key.json"
+#COPY crime-trends-explorer-user-key.json /.
+#ENV KEY_FILE="/crime-trends-explorer-user-key.json"
 
 
 # to store event log files
@@ -58,8 +58,8 @@ RUN pip install -r requirements.txt --trusted-host pypi.python.org --no-cache-di
 
 
 # Activate the service account (to access to Google Cloud services using the service account key file)
-ENV GOOGLE_APPLICATION_CREDENTIALS="${KEY_FILE}"
-RUN gcloud auth activate-service-account --key-file="${KEY_FILE}"
+#ENV GOOGLE_APPLICATION_CREDENTIALS="${KEY_FILE}"
+#RUN gcloud auth activate-service-account --key-file="${KEY_FILE}"
 
 
 # Make ports 80, 4200 available to the world outside this container

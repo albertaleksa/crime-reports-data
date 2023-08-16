@@ -11,3 +11,4 @@ __pycache__/
 /data/
 /crime-trends-explorer-user-key.json
 /flows/lib/
+/flows/__pycache__/
