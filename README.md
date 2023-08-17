@@ -232,9 +232,8 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
     ```
     scp ~/.gc/crime-trends-explorer-user-key.json de_user@crime-vm:~/.gc/
     ```
-   Also copy this key to your folder with project in VM.
 7. **(In Remote VM)** Configure gcloud with your service account .json file:
-   - If needed change **<path-to-your-key-file>** in file `setup/activate_service_account.sh` to your value
+   - If needed change **KEY_FILE** and **KEY_FILE_PATH** in file `.env` to your values
    - Run command:
      ```
      make activate-sa
@@ -243,7 +242,7 @@ Copy Project ID (in my case it was: `crime-trends-explorer`) and press `Create`.
 
 ### Step 3. Run Terraform to deploy your infrastructure to your Google Cloud Project **(In Remote VM)**
 
-0) If needed you can change variables in `terraform.tfvars` (change region,..) and `.env` file
+0) If needed you can change variables in `.env` (change REGION, ZONE, PROJECT_ID..) and `terraform.tfvars` files
 
 1) Initialize terraform:
     ```
