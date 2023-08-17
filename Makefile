@@ -10,21 +10,21 @@ activate-sa:
 # Terraform
 # Initialize terraform
 terraform-init:
-	terraform -chdir="./terraform" init
+	terraform -chdir="./terraform" init -var="region=${REGION}" -var="zone=${ZONE}"
 
 # Build a deployment plan
 terraform-plan:
-	terraform -chdir="./terraform" plan -var="project_id=${PROJECT_ID}"
+	terraform -chdir="./terraform" plan -var="project_id=${PROJECT_ID}" -var="region=${REGION}" -var="zone=${ZONE}"
 
 # Deploy the infrastructure
 terraform-apply:
-	terraform -chdir="./terraform" apply -var="project_id=${PROJECT_ID}" -auto-approve
+	terraform -chdir="./terraform" apply -var="project_id=${PROJECT_ID}" -var="region=${REGION}" -var="zone=${ZONE}" -auto-approve
 	$(MAKE) update-env-temp-bucket
 	$(MAKE) update-env-gcs-name
 
 # Delete infrastructure
 terraform-destroy:
-	terraform -chdir="./terraform" destroy -var="project_id=${PROJECT_ID}" -auto-approve
+	terraform -chdir="./terraform" destroy -var="project_id=${PROJECT_ID}" -var="region=${REGION}" -var="zone=${ZONE}" -auto-approve
 
 
 # Update a value of the DATAPROC_TEMP_BUCKET variable in the .env file
@@ -76,15 +76,15 @@ ingest-data:
 		\"la_url_2\": \"https://data.lacity.org/api/views/2nrs-mtv8/rows.csv\", \
 		\"sd_url\": \"https://seshat.datasd.org/pd/pd_calls_for_service\", \
 		\"temp_gcs_bucket\": \"${DATAPROC_TEMP_BUCKET}\", \
-		\"input_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/aus/aus_2003_2023.csv\", \
-		\"output_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/aus/\", \
+		\"input_path_aus\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/aus/aus_2003_2023.csv\", \
+		\"output_path_aus\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/pq/aus/\", \
 		\"output_bq_aus\": \"raw_crime_reports.austin_crimedata\", \
-		\"input_path_la\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/la/*.csv\", \
-		\"input_path_la\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/la/*.csv\", \
-		\"output_path_la\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/la/\", \
+		\"input_path_la\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/la/*.csv\", \
+		\"input_path_la\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/la/*.csv\", \
+		\"output_path_la\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/pq/la/\", \
 		\"output_bq_la\": \"raw_crime_reports.la_crimedata\", \
-		\"input_path_sd\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/sd/\", \
-		\"output_path_sd\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/sd/\", \
+		\"input_path_sd\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/sd/\", \
+		\"output_path_sd\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/pq/sd/\", \
 		\"output_bq_sd\": \"raw_crime_reports.sd_crimedata\"}"
 
 # Create a Prefect Flow deployment to ingest data by schedule
@@ -97,15 +97,15 @@ ingest-data-schedule:
 		\"la_url_2\": \"https://data.lacity.org/api/views/2nrs-mtv8/rows.csv\", \
 		\"sd_url\": \"https://seshat.datasd.org/pd/pd_calls_for_service\", \
 		\"temp_gcs_bucket\": \"${DATAPROC_TEMP_BUCKET}\", \
-		\"input_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/aus/aus_2003_2023.csv\", \
-		\"output_path_aus\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/aus/\", \
+		\"input_path_aus\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/aus/aus_2003_2023.csv\", \
+		\"output_path_aus\": \"gs://${DATA_LAKE_BUCKET_NAME}r/data/pq/aus/\", \
 		\"output_bq_aus\": \"raw_crime_reports.austin_crimedata\", \
-		\"input_path_la\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/la/*.csv\", \
-		\"input_path_la\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/la/*.csv\", \
-		\"output_path_la\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/la/\", \
+		\"input_path_la\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/la/*.csv\", \
+		\"input_path_la\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/la/*.csv\", \
+		\"output_path_la\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/pq/la/\", \
 		\"output_bq_la\": \"raw_crime_reports.la_crimedata\", \
-		\"input_path_sd\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/raw/sd/\", \
-		\"output_path_sd\": \"gs://crime_trends_explorer_data_lake_crime-trends-explorer/data/pq/sd/\", \
+		\"input_path_sd\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/raw/sd/\", \
+		\"output_path_sd\": \"gs://${DATA_LAKE_BUCKET_NAME}/data/pq/sd/\", \
 		\"output_bq_sd\": \"raw_crime_reports.sd_crimedata\"}" \
 		--cron "0 2 * * *"
 

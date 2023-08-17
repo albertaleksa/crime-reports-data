@@ -6,3 +6,33 @@ https://api.census.gov/data/2020/dec/dhc?get=NAME,P1_001N&for=place:05000&in=sta
 
 # Estimate population for Texas cities for 2020-2022
 https://www2.census.gov/programs-surveys/popest/datasets/2020-2022/cities/totals/sub-est2022_48.csv
+
+
+env_vars = environ({
+    'PATH': '/spark/spark-3.3.2-bin-hadoop3/bin:/spark/jdk-11.0.2/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+    'HOSTNAME': '7cab7dc703dc',
+    'PREFECT_API_URL': 'http://server:4200/api',
+    'LANG': 'C.UTF-8',
+    'GPG_KEY': 'E3FF2839C048B25C084DEBE9B26995E310250568',
+    'PYTHON_VERSION': '3.9.17',
+    'PYTHON_PIP_VERSION': '23.0.1',
+    'PYTHON_SETUPTOOLS_VERSION': '58.1.0',
+    'PYTHON_GET_PIP_URL': 'https://github.com/pypa/get-pip/raw/9af82b715db434abb94a0a6f3569f43e72157346/public/get-pip.py',
+    'PYTHON_GET_PIP_SHA256': '45a2bb8bf2bb5eff16fdd00faef6f29731831c7c59bd9fc2bf1f3bed511ff1fe',
+    'JAVA_HOME': '/spark/jdk-11.0.2',
+    'SPARK_HOME': '/spark/spark-3.3.2-bin-hadoop3',
+    'PYTHONPATH': '/spark/spark-3.3.2-bin-hadoop3/python/lib/py4j-0.10.9.5-src.zip:/spark/spark-3.3.2-bin-hadoop3/python/:',
+    'HOME': '/root',
+    'PREFECT__FLOW_RUN_ID': '94f65853a42148ccbd073181aec27168',
+    'PROJECT_ID': 'crime-trends-explorer2',
+    'REGION': 'us-east1',
+    'ZONE': 'us-east1-b',
+    'KEY_FILE': 'crime-trends-explorer-user-key.json',
+    'KEY_FILE_PATH': '$HOME/.gc/$KEY_FILE',
+    'CREDS_BLOCK_NAME': 'crime-trends-explorer-gcp-creds',
+    'BUCKET_BLOCK_NAME': 'crime-trends-explorer-gcs',
+    'SPARK_JOB_FILE': 'spark_job.py',
+    'DATAPROC_CLUSTER_NAME': 'crime-trends-explorer-cluster',
+    'DATAPROC_TEMP_BUCKET': 'dataproc-temp-us-east1-667397420445-milkch35',
+    'DATA_LAKE_BUCKET_NAME': 'crime_trends_explorer_data_lake_crime-trends-explorer2'
+})

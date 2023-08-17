@@ -1,7 +1,7 @@
 // Change these information as your GCP ProjectId, region and zone setting
 //project_id          = ""
-region              = "us-east1"
-zone                = "us-east1-b"
+//region              = "us-east1"
+//zone                = "us-east1-b"
 
 data_lake_bucket    = "crime_trends_explorer_data_lake"
 storage_class       = "STANDARD"

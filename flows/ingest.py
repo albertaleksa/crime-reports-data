@@ -11,6 +11,8 @@ import pandas as pd
 from prefect import flow, task
 from prefect.tasks import task_input_hash
 from prefect_gcp.cloud_storage import GcsBucket
+# use GCP Credentials block for storing credentials
+from prefect_gcp import GcpCredentials
 
 from google.cloud import storage
 from google.cloud import dataproc_v1 as dataproc
@@ -68,6 +70,9 @@ def upload_to_gcs(path: Path) -> None:
 @task(log_prints=True)
 def upload_job_to_gcs() -> Path:
     """Upload python-file with Spark job to gcs"""
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    load_dotenv(os.path.join(basedir, '../.env'))
+
     bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
     spark_job_file = os.getenv("SPARK_JOB_FILE")
     spark_job_file_path = f'flows/{os.getenv("SPARK_JOB_FILE")}'
@@ -95,8 +100,14 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
     cluster_name = os.getenv("DATAPROC_CLUSTER_NAME")
     bucket_name = os.getenv("DATA_LAKE_BUCKET_NAME")
 
+    # Use Prefect GcpCredentials Block which stores credentials
+    credentials_block_name = os.getenv("CREDS_BLOCK_NAME")
+    gcp_credentials_block = GcpCredentials.load(credentials_block_name)
+    credentials = gcp_credentials_block.get_credentials_from_service_account()
+
     # Set up DataProc client and cluster information
     dataproc_client = dataproc.JobControllerClient(
+        credentials=credentials,
         client_options={"api_endpoint": "{}-dataproc.googleapis.com:443".format(region)}
     )
 
@@ -125,6 +136,8 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
             "archive_uris": [],
         },
     }
+
+    print(f"job_details = {job_details}")
 
     # Submit the job
     operation = dataproc_client.submit_job_as_operation(
@@ -177,8 +190,8 @@ def parent_flow(aus_url: str, la_url_1: str, la_url_2: str, sd_url: str,
     # load data for Los Angeles
     web_to_gcs(la_url_1, "la_2010_2019.csv")
     web_to_gcs(la_url_2, "la_2020_2023.csv")
+
     # load data for San Diego
-    # for year in range(2015, 2024):
     for year in range(2015, 2024):
         if year < 2018:
             sd_url_full = f"{sd_url}_{year}_datasd_v1.csv"
@@ -191,7 +204,6 @@ def parent_flow(aus_url: str, la_url_1: str, la_url_2: str, sd_url: str,
 
 
 if __name__ == '__main__':
-    # aus_url = "https://data.austintexas.gov/api/views/fdj4-gpfu/rows.csv"
     aus_url = "<aus_url_path>"
     la_url_1 = "<la_url_path_1>"
     la_url_2 = "<la_url_path_2>"
