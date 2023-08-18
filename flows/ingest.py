@@ -18,6 +18,17 @@ from google.cloud import storage
 from google.cloud import dataproc_v1 as dataproc
 
 
+@task(log_prints=True)
+def load_env() -> None:
+    """Load file .env with environment variables"""
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    res = load_dotenv(os.path.join(basedir, '../.env'))
+    if res:
+        print("File with environment variables was successfully loaded.")
+    else:
+        print("Error loading the file with environment variables.")
+
+
 # @task(log_prints=True, retries=3, retry_delay_seconds=60, cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
 @task(log_prints=True, retries=3, retry_delay_seconds=60)
 def download_file(url: str, csv_name: str) -> Path:
@@ -49,8 +60,6 @@ def download_file(url: str, csv_name: str) -> Path:
 @task(log_prints=True)
 def upload_to_gcs(path: Path) -> None:
     """Upload local file to GCS"""
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    load_dotenv(os.path.join(basedir, '../.env'))
     bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
     gcs_block = GcsBucket.load(bucket_block_name)
     path_1 = path.parts[0]
@@ -70,9 +79,6 @@ def upload_to_gcs(path: Path) -> None:
 @task(log_prints=True)
 def upload_job_to_gcs() -> Path:
     """Upload python-file with Spark job to gcs"""
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    load_dotenv(os.path.join(basedir, '../.env'))
-
     bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
     spark_job_file = os.getenv("SPARK_JOB_FILE")
     spark_job_file_path = f'flows/{os.getenv("SPARK_JOB_FILE")}'
@@ -184,6 +190,8 @@ def parent_flow(aus_url: str, la_url_1: str, la_url_2: str, sd_url: str,
                 input_path_la: str, output_path_la: str, output_bq_la: str,
                 input_path_sd: str, output_path_sd: str, output_bq_sd: str):
 
+    # Load file .env
+    load_env()
     # load data for Austin
     web_to_gcs(aus_url, "aus_2003_2023.csv")
 

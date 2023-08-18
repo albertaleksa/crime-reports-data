@@ -37,9 +37,12 @@ The primary goal of the CrimeTrendsExplorer project is to build a robust data pi
 ### Data Sources
 The crime records data will be obtained from the following sources:
 
-1. Austin: Austin Police Department's Public Data Portal (https://data.austintexas.gov/)
-2. Los Angeles: Los Angeles Open Data Portal (https://data.lacity.org/)
-3. San Diego: San Diego Data Portal (https://data.sandiego.gov/)
+1. Austin: Austin Police Department's Public Data Portal (https://data.austintexas.gov/). <br>
+   Dataset: [Crime Reports](https://data.austintexas.gov/Public-Safety/Crime-Reports/fdj4-gpfu)
+2. Los Angeles: Los Angeles Open Data Portal (https://data.lacity.org/).  <br>
+   Datasets: [Crime Data from 2010 to 2019](https://data.lacity.org/Public-Safety/Crime-Data-from-2010-to-2019/63jg-8b9z), [Crime Data from 2020 to Present](https://data.lacity.org/Public-Safety/Crime-Data-from-2020-to-Present/2nrs-mtv8)
+3. San Diego: San Diego Data Portal (https://data.sandiego.gov/). <br>
+   Dataset: [Police Calls for Service](https://data.sandiego.gov/datasets/police-calls-for-service/)
 
 ### Data Processing
 The raw crime data will be processed using Apache Spark, which provides a highly scalable and distributed computing framework for big data processing. The pipeline will involve the following steps:
@@ -91,9 +94,144 @@ _[Back to the top](#table-of-contents)_
 
 This project processes crime records data for 3 cities (Austin, Los Angeles, and San Diego) for several years, providing insights and analysis of crime trends across these cities.
 
-1. **Data Ingestion**: In this stage, the raw crime data from the respective cities is fetched from various web sources as CSV files. The raw data is then stored in Google Cloud Storage, along with the Python file containing the Apache Spark job.
+1. **Data Ingestion**: In this stage, raw crime data from various cities is collected from different web sources in the form of *CSV* files. The data is then stored in *Google Cloud Storage*, along with the *Python file* that contains the *Apache Spark job*. <br><br>
+ For each dataset, a *Prefect Flow* (`"Ingest Flow"`) is utilized. This flow consists of two tasks:
+   * Downloading the dataset *from the web into local storage*
+   * Uploading the *local file to Google Cloud Storage* (GCS).
+   <br> <br>
 
+    <details>
+      <summary>Ingest Flow</summary>
+      https://github.com/albertaleksa/crime-reports-data/blob/6f09271d3729faa3a600f88e26e8e2fe9ff42683/flows/ingest.py#L158C1-L162C35
+    </details>
+    <details>
+      <summary>Upload local file to GCS</summary>
+    
+      ```
+    @task(log_prints=True)
+    def upload_to_gcs(path: Path) -> None:
+        """Upload local file to GCS"""
+        bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
+        gcs_block = GcsBucket.load(bucket_block_name)
+        path_1 = path.parts[0]
+        path_rest = "/".join(path.parts[1:])
+    
+        # Check if the file exists
+        if os.path.exists(path):
+            # If the file exists, upload it to GCS
+            gcs_block.upload_from_path(from_path=f"{path}", to_path=f"{path_1}/raw/{path_rest}", timeout=300)
+            os.remove(path)
+        else:
+            print(f"The file '{path}' does not exist.")
+    
+        return
+      ```
+    </details>
+    <details>
+      <summary>Upload python-file with Spark job to gcs</summary>
+    
+      ```
+      @task(log_prints=True)
+      def upload_job_to_gcs() -> Path:
+        """Upload python-file with Spark job to gcs"""
+        bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
+        spark_job_file = os.getenv("SPARK_JOB_FILE")
+        spark_job_file_path = f'flows/{os.getenv("SPARK_JOB_FILE")}'
+        gcs_block = GcsBucket.load(bucket_block_name)
+        path = Path(f"code/{spark_job_file}")
+    
+        # Check if the file exists
+        if os.path.exists(spark_job_file_path):
+            # If the file exists, upload it to GCS
+            gcs_block.upload_from_path(from_path=spark_job_file_path, to_path=path, timeout=300)
+        else:
+            print(f"The file '{spark_job_file_path}' does not exist.")
+    
+        return path
+      ```
+    </details>
+    <details>
+      <summary>Submit Spark job to DataProc Cluster</summary>
+    
+      ```
+      @task(log_prints=True)
+      def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
+                                input_path_aus: str, output_path_aus: str, output_bq_aus: str,
+                                input_path_la: str, output_path_la: str, output_bq_la: str,
+                                input_path_sd: str, output_path_sd: str, output_bq_sd: str):
+            """Submit Spark job to DataProc Cluster"""
+            project_id = os.getenv("PROJECT_ID")
+            region = os.getenv("REGION")
+            cluster_name = os.getenv("DATAPROC_CLUSTER_NAME")
+            bucket_name = os.getenv("DATA_LAKE_BUCKET_NAME")
+        
+            # Use Prefect GcpCredentials Block which stores credentials
+            credentials_block_name = os.getenv("CREDS_BLOCK_NAME")
+            gcp_credentials_block = GcpCredentials.load(credentials_block_name)
+            credentials = gcp_credentials_block.get_credentials_from_service_account()
+        
+            # Set up DataProc client and cluster information
+            dataproc_client = dataproc.JobControllerClient(
+                credentials=credentials,
+                client_options={"api_endpoint": "{}-dataproc.googleapis.com:443".format(region)}
+            )
+        
+            # Define the PySpark job
+            job_details = {
+                "reference": {"job_id": str(uuid.uuid4())},
+                "placement": {"cluster_name": cluster_name},
+                "pyspark_job": {
+                    "main_python_file_uri": f"gs://{bucket_name}/{spark_job_file}",
+                    # "args": [input_file, output_file],
+                    "args": [
+                        "--temp_gcs_bucket", temp_gcs_bucket,
+                        "--input_path_aus", input_path_aus,
+                        "--output_path_aus", output_path_aus,
+                        "--output_bq_aus", output_bq_aus,
+                        "--input_path_la", input_path_la,
+                        "--output_path_la", output_path_la,
+                        "--output_bq_la", output_bq_la,
+                        "--input_path_sd", input_path_sd,
+                        "--output_path_sd", output_path_sd,
+                        "--output_bq_sd", output_bq_sd
+                    ],
+                    "jar_file_uris": ["gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar"],
+                    "python_file_uris": [],
+                    "file_uris": [],
+                    "archive_uris": [],
+                },
+            }
+        
+            print(f"job_details = {job_details}")
+        
+            # Submit the job
+            operation = dataproc_client.submit_job_as_operation(
+                request={
+                    "project_id": project_id,
+                    "region": region,
+                    "job": job_details
+                }
+            )
+            response = operation.result()
+            print(f"response = {response}")
+            print(f"response.reference.job_id = {response.reference.job_id}")
+        
+            # Return the job ID
+            return response.reference.job_id
+      ```
+    </details>
+    <br>
 2. **Data Transformation**: The raw data is processed using Apache Spark, running on a DataProc Cluster. The Spark job performs tasks such as data cleaning, transformation, enrichment, and partitioning. The transformed data is then directly loaded into Google BigQuery, a fully-managed data warehouse solution.
+    <details>
+        <summary>Read csv data using schema</summary>
+  
+    ```
+    asss
+    ```
+    </details>
+    <br>
+
+
 
 3. **Data Modeling**: The transformed data is further processed using dbt (Data Build Tool) to create meaningful and structured data models in Google BigQuery.
 

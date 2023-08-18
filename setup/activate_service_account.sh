@@ -3,9 +3,6 @@
 # Load variables from the .env file
 source .env
 
-echo "KEY_FILE from .env = $KEY_FILE"
-echo "KEY_FILE_PATH from .env = $KEY_FILE_PATH"
-
 # KEY_FILE_PATH - the path to service account key file (from .env file)
 
 # Add the environment variable GOOGLE_APPLICATION_CREDENTIALS to the .bashrc file

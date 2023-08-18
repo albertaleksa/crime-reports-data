@@ -55,12 +55,8 @@ services:
     volumes:
       - "./flows:/app/flows"
       - "./dbt_crime:/app/dbt_crime"
-#      - "${KEY_FILE_PATH}:/app/${KEY_FILE}"
-#      - "$HOME/.gc/crime-trends-explorer-user-key.json:/app/crime-trends-explorer-user-key.json"
     environment:
       - PREFECT_API_URL=http://server:4200/api
-#      - GOOGLE_APPLICATION_CREDENTIALS=/app/${KEY_FILE}
-#      - GOOGLE_APPLICATION_CREDENTIALS=/app/crime-trends-explorer-user-key.json
     tty: true
     stdin_open: true
 
