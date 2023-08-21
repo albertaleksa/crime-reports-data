@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 /venv/
+/myenv/
 
 /.git/
 /.idea/
@@ -12,3 +13,4 @@ __pycache__/
 /crime-trends-explorer-user-key.json
 /flows/lib/
 /flows/__pycache__/
+
