@@ -50,7 +50,7 @@ def write_to_bigquery(df: DataFrame, output: str, partition_column: str) -> None
 def csv_to_parquet_aus(spark: SparkSession, input_path: str, output_path: str) -> None:
     """Read data from csv and save to parquet for Austin"""
     print(f"Processing data for AUSTIN")
-    # Schema for Austin Crtime data
+    # Schema for Austin Crime data
     df_aus_schema = types.StructType([
         types.StructField('Incident_Number', types.LongType(), True),
         types.StructField('Highest_Offense_Description', types.StringType(), True),
@@ -134,7 +134,7 @@ def modify_aus(df: DataFrame) -> DataFrame:
 def csv_to_parquet_la(spark: SparkSession, input_path: str, output_path: str) -> None:
     """Read data from csv and save to parquet for Los Angeles"""
     print(f"Processing data for LOS ANGELES")
-    # Schema for Los Angeles Crtime data
+    # Schema for Los Angeles Crime data
     df_la_schema = types.StructType([
         types.StructField('DR_NO', types.IntegerType(), True),
         types.StructField('Date_Rptd', types.StringType(), True),
@@ -259,7 +259,7 @@ def modify_la(df: DataFrame) -> DataFrame:
 def csv_to_parquet_sd(spark: SparkSession, input_path: str, output_path: str) -> None:
     """Read data from csv and save to parquet for San Diego"""
     print(f"Processing data for SAN DIEGO")
-    # Schema for San Diego Crtime data
+    # Schema for San Diego Crime data
     df_sd_schema = types.StructType([
         types.StructField('incident_num', types.StringType(), True),
         types.StructField('date_time', types.TimestampType(), True),

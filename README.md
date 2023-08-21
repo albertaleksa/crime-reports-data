@@ -98,16 +98,55 @@ This project processes crime records data for 3 cities (Austin, Los Angeles, and
  For each dataset, a *Prefect Flow* (`"Ingest Flow"`) is utilized. This flow consists of two tasks:
    * Downloading the dataset *from the web into local storage*
    * Uploading the *local file to Google Cloud Storage* (GCS).
-   <br> <br>
+   <br><br>
+   <details>
+     <summary>Ingest Flow</summary>
+   
+    ```python
+    @flow(name="Ingest Flow")
+    def web_to_gcs(url: str, csv_name: str) -> None:
+        """Download data in csv and upload to GCS"""
+        downloaded_file = download_file(url, csv_name)
+        upload_to_gcs(downloaded_file)
+   ```
+   </details>
 
-    <details>
-      <summary>Ingest Flow</summary>
-      https://github.com/albertaleksa/crime-reports-data/blob/6f09271d3729faa3a600f88e26e8e2fe9ff42683/flows/ingest.py#L158C1-L162C35
-    </details>
-    <details>
-      <summary>Upload local file to GCS</summary>
+   <details>
+     <summary>Web -> Local storage</summary>
+   
+    ```python
+    @task(log_prints=True, retries=3, retry_delay_seconds=60)
+    def download_file(url: str, csv_name: str) -> Path:
+        """Download data from web into local storage"""
+        city = csv_name.split("_")[0]
+        path = Path(f"data/{city}/{csv_name}")
+        print(f"Downloading file {csv_name} for {city}")
     
-      ```
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            downloaded_size = 0
+            size = 0
+            with open(path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded_size += len(chunk)
+                        downloaded_size_mb = downloaded_size / (1024 * 1024)
+    
+                        if int(downloaded_size_mb) % 5 == 0 and size != int(downloaded_size_mb):
+                            print(f"\rDownloaded size: {int(downloaded_size_mb)} MB", end="")
+                            size = int(downloaded_size_mb)
+            print(f"File {csv_name} downloaded successfully. Full size is {downloaded_size_mb:.2f} MB")
+        else:
+            print("Error downloading the file.")
+        return path
+   ```
+   </details>
+
+   <details>
+     <summary>Local file -> GCS</summary>
+   
+    ```python
     @task(log_prints=True)
     def upload_to_gcs(path: Path) -> None:
         """Upload local file to GCS"""
@@ -125,14 +164,21 @@ This project processes crime records data for 3 cities (Austin, Los Angeles, and
             print(f"The file '{path}' does not exist.")
     
         return
-      ```
-    </details>
-    <details>
-      <summary>Upload python-file with Spark job to gcs</summary>
+   ```
+   </details>
+   
+   <br>
     
-      ```
-      @task(log_prints=True)
-      def upload_job_to_gcs() -> Path:
+   Another *Prefect Flow* (`"Submit Spark Job"`) that is utilized is the Flow for submitting a Spark job to the Dataproc Cluster. This Flow consists of two tasks: 
+   * Uploading the Python file containing the *Spark job* to Google Cloud Storage (GCS)
+   * *Submitting the Spark* job to the DataProc Cluster.    
+   <br>
+   <details>
+     <summary>Spark job file -> GCS</summary>
+   
+    ```python
+    @task(log_prints=True)
+    def upload_job_to_gcs() -> Path:
         """Upload python-file with Spark job to gcs"""
         bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
         spark_job_file = os.getenv("SPARK_JOB_FILE")
@@ -148,93 +194,374 @@ This project processes crime records data for 3 cities (Austin, Los Angeles, and
             print(f"The file '{spark_job_file_path}' does not exist.")
     
         return path
-      ```
-    </details>
-    <details>
-      <summary>Submit Spark job to DataProc Cluster</summary>
+   ```
+   </details>
+
+   <details>
+     <summary>Submit Spark job</summary>
+   
+    ```python
+    @task(log_prints=True)
+    def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
+                            input_path_aus: str, output_path_aus: str, output_bq_aus: str,
+                            input_path_la: str, output_path_la: str, output_bq_la: str,
+                            input_path_sd: str, output_path_sd: str, output_bq_sd: str):
+        """Submit Spark job to DataProc Cluster"""
+        project_id = os.getenv("PROJECT_ID")
+        region = os.getenv("REGION")
+        cluster_name = os.getenv("DATAPROC_CLUSTER_NAME")
+        bucket_name = os.getenv("DATA_LAKE_BUCKET_NAME")
     
-      ```
-      @task(log_prints=True)
-      def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
-                                input_path_aus: str, output_path_aus: str, output_bq_aus: str,
-                                input_path_la: str, output_path_la: str, output_bq_la: str,
-                                input_path_sd: str, output_path_sd: str, output_bq_sd: str):
-            """Submit Spark job to DataProc Cluster"""
-            project_id = os.getenv("PROJECT_ID")
-            region = os.getenv("REGION")
-            cluster_name = os.getenv("DATAPROC_CLUSTER_NAME")
-            bucket_name = os.getenv("DATA_LAKE_BUCKET_NAME")
-        
-            # Use Prefect GcpCredentials Block which stores credentials
-            credentials_block_name = os.getenv("CREDS_BLOCK_NAME")
-            gcp_credentials_block = GcpCredentials.load(credentials_block_name)
-            credentials = gcp_credentials_block.get_credentials_from_service_account()
-        
-            # Set up DataProc client and cluster information
-            dataproc_client = dataproc.JobControllerClient(
-                credentials=credentials,
-                client_options={"api_endpoint": "{}-dataproc.googleapis.com:443".format(region)}
-            )
-        
-            # Define the PySpark job
-            job_details = {
-                "reference": {"job_id": str(uuid.uuid4())},
-                "placement": {"cluster_name": cluster_name},
-                "pyspark_job": {
-                    "main_python_file_uri": f"gs://{bucket_name}/{spark_job_file}",
-                    # "args": [input_file, output_file],
-                    "args": [
-                        "--temp_gcs_bucket", temp_gcs_bucket,
-                        "--input_path_aus", input_path_aus,
-                        "--output_path_aus", output_path_aus,
-                        "--output_bq_aus", output_bq_aus,
-                        "--input_path_la", input_path_la,
-                        "--output_path_la", output_path_la,
-                        "--output_bq_la", output_bq_la,
-                        "--input_path_sd", input_path_sd,
-                        "--output_path_sd", output_path_sd,
-                        "--output_bq_sd", output_bq_sd
-                    ],
-                    "jar_file_uris": ["gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar"],
-                    "python_file_uris": [],
-                    "file_uris": [],
-                    "archive_uris": [],
-                },
+        # Use Prefect GcpCredentials Block which stores credentials
+        credentials_block_name = os.getenv("CREDS_BLOCK_NAME")
+        gcp_credentials_block = GcpCredentials.load(credentials_block_name)
+        credentials = gcp_credentials_block.get_credentials_from_service_account()
+    
+        # Set up DataProc client and cluster information
+        dataproc_client = dataproc.JobControllerClient(
+            credentials=credentials,
+            client_options={"api_endpoint": "{}-dataproc.googleapis.com:443".format(region)}
+        )
+    
+        # Define the PySpark job
+        job_details = {
+            "reference": {"job_id": str(uuid.uuid4())},
+            "placement": {"cluster_name": cluster_name},
+            "pyspark_job": {
+                "main_python_file_uri": f"gs://{bucket_name}/{spark_job_file}",
+                # "args": [input_file, output_file],
+                "args": [
+                    "--temp_gcs_bucket", temp_gcs_bucket,
+                    "--input_path_aus", input_path_aus,
+                    "--output_path_aus", output_path_aus,
+                    "--output_bq_aus", output_bq_aus,
+                    "--input_path_la", input_path_la,
+                    "--output_path_la", output_path_la,
+                    "--output_bq_la", output_bq_la,
+                    "--input_path_sd", input_path_sd,
+                    "--output_path_sd", output_path_sd,
+                    "--output_bq_sd", output_bq_sd
+                ],
+                "jar_file_uris": ["gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar"],
+                "python_file_uris": [],
+                "file_uris": [],
+                "archive_uris": [],
+            },
+        }
+    
+        print(f"job_details = {job_details}")
+    
+        # Submit the job
+        operation = dataproc_client.submit_job_as_operation(
+            request={
+                "project_id": project_id,
+                "region": region,
+                "job": job_details
             }
-        
-            print(f"job_details = {job_details}")
-        
-            # Submit the job
-            operation = dataproc_client.submit_job_as_operation(
-                request={
-                    "project_id": project_id,
-                    "region": region,
-                    "job": job_details
-                }
-            )
-            response = operation.result()
-            print(f"response = {response}")
-            print(f"response.reference.job_id = {response.reference.job_id}")
-        
-            # Return the job ID
-            return response.reference.job_id
-      ```
-    </details>
-    <br>
-2. **Data Transformation**: The raw data is processed using Apache Spark, running on a DataProc Cluster. The Spark job performs tasks such as data cleaning, transformation, enrichment, and partitioning. The transformed data is then directly loaded into Google BigQuery, a fully-managed data warehouse solution.
-    <details>
+        )
+        response = operation.result()
+        print(f"response = {response}")
+        print(f"response.reference.job_id = {response.reference.job_id}")
+    
+        # Return the job ID
+        return response.reference.job_id
+   ```
+   </details>
+   <br>
+
+2. **Data Transformation**: The raw data is processed using *Apache Spark*, running on a *DataProc Cluster*. The Spark job performs tasks such as data cleaning, transformation, enrichment, and partitioning. The following steps outline the process for each city's data:
+
+   * **Read CSV Dataset:** The Spark job reads the *CSV* dataset from *Google Cloud Storage (GCS)* using a specific schema.
+      <details>
         <summary>Read csv data using schema</summary>
-  
-    ```
-    asss
-    ```
-    </details>
-    <br>
+   
+       ```python
+        def read_csv(spark: SparkSession, schema: types.StructType, input_path: str) -> DataFrame:
+        """Read csv data using schema"""
+        print(f"Read csv data {input_path}")
+        df = spark.read \
+            .option("header", "true") \
+            .option("inferSchema", "false") \
+            .schema(schema) \
+            .csv(input_path)
+        return df
+       ```
+      </details>
 
+      <details>
+        <summary>Austin Dataset Description</summary>
+    
+      | Column Name                    | Description                                                  | Type         |
+      |--------------------------------|--------------------------------------------------------------|--------------|
+      | Incident Number                | Incident report number                                       | Number       |
+      | Highest Offense Description    | Description                                                  | Plain Text   |
+      | Highest Offense Code           | Code                                                         | Number       |
+      | Family Violence                | Incident involves family violence? Y = yes, N = no           | Plain Text   |
+      | Occurred Date Time             | Date and time (combined) incident occurred                   | Date & Time  |
+      | Occurred Date                  | Date the incident occurred                                   | Date & Time  |
+      | Occurred Time                  | Time the incident occurred                                   | Number       |
+      | Report Date Time               | Date and time (combined) incident was reported               | Date & Time  |
+      | Report Date                    | Date the incident was reported                               | Date & Time  |
+      | Report Time                    | Time the incident was reported                               | Number       |
+      | Location Type                  | General description of the premise where the incident occurred| Plain Text   |
+      | Address                        | Incident location                                            | Plain Text   |
+      | Zip Code                       | Zip code where incident occurred                             | Number       |
+      | Council District               | Austin city council district where incident occurred          | Number       |
+      | APD Sector                     | Austin Police Department sector where incident occurred       | Plain Text   |
+      | APD District                   | Austin Police Department district where incident occurred     | Number       |
+      | PRA                            | Police Reporting Area where incident occurred                 | Number       |
+      | Census Tract                   | Census tract where incident occurred                         | Number       |
+      | Clearance Status               | How the incident was cleared. C, N, O                        | Plain Text   |
+      | Clearance Date                 | Date the incident was cleared                                | Date & Time  |
+      | UCR Category                   | UCR category of the highest offense                           | Plain Text   |
+      | Category Description           | UCR category description of the highest offense               | Plain Text   |
+      | X-coordinate                   | X-coordinate of the incident location                        | Number       |
+      | Y-coordinate                   | Y-coordinate of the incident location                        | Number       |
+      | Latitude                       | Latitude of the incident location                            | Number       |
+      | Longitude                      | Longitude of the incident location                           | Number       |
+      | Location                       | Location as a (latitude, longitude) pair                     | Location     |
+    
+      </details>    
+   
+      <details>
+        <summary>Schema for Austin Crime data</summary>
 
+       ```python
+       df_aus_schema = types.StructType([
+            types.StructField('Incident_Number', types.LongType(), True),
+            types.StructField('Highest_Offense_Description', types.StringType(), True),
+            types.StructField('Highest_Offense_Code', types.IntegerType(), True),
+            types.StructField('Family_Violence', types.StringType(), True),
+            types.StructField('Occurred_Date_Time', types.StringType(), True),
+            types.StructField('Occurred_Date', types.StringType(), True),
+            types.StructField('Occurred_Time', types.StringType(), True),
+            types.StructField('Report_Date_Time', types.StringType(), True),
+            types.StructField('Report_Date', types.StringType(), True),
+            types.StructField('Report_Time', types.StringType(), True),
+            types.StructField('Location_Type', types.StringType(), True),
+            types.StructField('Address', types.StringType(), True),
+            types.StructField('Zip_Code', types.IntegerType(), True),
+            types.StructField('Council_District', types.IntegerType(), True),
+            types.StructField('APD_Sector', types.StringType(), True),
+            types.StructField('APD_District', types.StringType(), True),
+            types.StructField('PRA', types.IntegerType(), True),
+            types.StructField('Census_Tract', types.DoubleType(), True),
+            types.StructField('Clearance_Status', types.StringType(), True),
+            types.StructField('Clearance_Date', types.StringType(), True),
+            types.StructField('UCR_Category', types.StringType(), True),
+            types.StructField('Category_Description', types.StringType(), True),
+            types.StructField('X-coordinate', types.IntegerType(), True),
+            types.StructField('Y-coordinate', types.IntegerType(), True),
+            types.StructField('Latitude', types.DoubleType(), True),
+            types.StructField('Longitude', types.DoubleType(), True),
+            types.StructField('Location', types.StringType(), True)
+       ])
+       ```
+      </details>
+      <details>
+        <summary>Los Angeles Dataset Description</summary>
+        
+        | Column Name | Description | Type |
+        | ----------- | ----------- | ---- |
+        | DR_NO | Division of Records Number: Official file number made up of a 2 digit year, area ID, and 5 digits | Plain Text |
+        | Date Rptd | MM/DD/YYYY | Date & Time |
+        | DATE OCC | MM/DD/YYYY | Date & Time |
+        | TIME OCC | In 24 hour military time. | Plain Text |
+        | AREA | The LAPD has 21 Community Police Stations referred to as Geographic Areas within the department. These Geographic Areas are sequentially numbered from 1-21. | Plain Text |
+        | AREA NAME | The 21 Geographic Areas or Patrol Divisions are also given a name designation that references a landmark or the surrounding community that it is responsible for. For example 77th Street Division is located at the intersection of South Broadway and 77th Street, serving neighborhoods in South Los Angeles. | Plain Text |
+        | Rpt Dist No | A four-digit code that represents a sub-area within a Geographic Area. All crime records reference the "RD" that it occurred in for statistical comparisons. Find LAPD Reporting Districts on the LA City GeoHub athttp://geohub.lacity.org/datasets/c4f83909b81d4786aa8ba8a74a4b4db1_4 | Plain Text |
+        | Part 1-2 |  | Number |
+        | Crm Cd | Indicates the crime committed. (Same as Crime Code 1) | Plain Text |
+        | Crm Cd Desc | Defines the Crime Code provided. | Plain Text |
+        | Mocodes | Modus Operandi: Activities associated with the suspect in commission of the crime.See attached PDF for list of MO Codes in numerical order.https://data.lacity.org/api/views/y8tr-7khq/files/3e0aca2a-ef30-4f3e-8f57-d84a916a3a1b | Plain Text |
+        | Vict Age | The victim's age at the time the incident occurred. | Number |
+        | Vict Sex | Gender of Victim | Plain Text |
+        | Vict Descent | Descent of Victim | Plain Text |
+        | Premis Cd | The type of structure, vehicle, or location where the crime took place. | Plain Text |
+        | Premis Desc | Defines the Premise Code provided. | Plain Text |
+        | Weapon Used Cd | The type of weapon used in the crime. | Plain Text |
+        | Weapon Desc | Defines the Weapon Used Code provided. | Plain Text |
+        | Status | Status of the case. (IC is the default) | Plain Text |
+        | Status Desc | Defines the Status Code provided. | Plain Text |
+        | Crm Cd 1 | Indicates the crime committed. Crime Code 1 is the primary and most serious one. Crime Code 2, 3, and 4 are respectively less serious offenses. Lower crime class numbers are more serious. | Plain Text |
+        | Crm Cd 2 | May contain a code for an additional crime, less serious than Crime Code 1. | Plain Text |
+        | Crm Cd 3 | May contain a code for an additional crime, less serious than Crime Code 1. | Plain Text |
+        | Crm Cd 4 | May contain a code for an additional crime, less serious than Crime Code 1. | Plain Text |
+        | LOCATION | Street address of crime incident rounded to the nearest hundred block to maintain anonymity. | Plain Text |
+        | Cross Street | Cross Street of rounded Address | Plain Text |
+        | LAT | Latitude | Number |
+        | LON | Longtitude | Number |
+      </details>
+      <details>
+        <summary>Schema for Los Angeles Crime data</summary>
+   
+       ```python
+       df_la_schema = types.StructType([
+            types.StructField('DR_NO', types.IntegerType(), True),
+            types.StructField('Date_Rptd', types.StringType(), True),
+            types.StructField('DATE_OCC', types.StringType(), True),
+            types.StructField('TIME_OCC', types.StringType(), True),
+            types.StructField('AREA', types.IntegerType(), True),
+            types.StructField('AREA_NAME', types.StringType(), True),
+            types.StructField('Rpt_Dist_No', types.IntegerType(), True),
+            types.StructField('Part_1-2', types.IntegerType(), True),
+            types.StructField('Crm_Cd', types.IntegerType(), True),
+            types.StructField('Crm_Cd_Desc', types.StringType(), True),
+            types.StructField('Mocodes', types.StringType(), True),
+            types.StructField('Vict_Age', types.IntegerType(), True),
+            types.StructField('Vict_Sex', types.StringType(), True),
+            types.StructField('Vict_Descent', types.StringType(), True),
+            types.StructField('Premis_Cd', types.IntegerType(), True),
+            types.StructField('Premis_Desc', types.StringType(), True),
+            types.StructField('Weapon_Used_Cd', types.IntegerType(), True),
+            types.StructField('Weapon_Desc', types.StringType(), True),
+            types.StructField('Status', types.StringType(), True),
+            types.StructField('Status_Desc', types.StringType(), True),
+            types.StructField('Crm_Cd_1', types.IntegerType(), True),
+            types.StructField('Crm_Cd_2', types.IntegerType(), True),
+            types.StructField('Crm_Cd_3', types.IntegerType(), True),
+            types.StructField('Crm_Cd_4', types.IntegerType(), True),
+            types.StructField('LOCATION', types.StringType(), True),
+            types.StructField('Cross_Street', types.StringType(), True),
+            types.StructField('LAT', types.DoubleType(), True),
+            types.StructField('LON', types.DoubleType(), True)
+       ])
+       ```
+      </details>
+      <details>
+        <summary>San Diego Dataset Description</summary>
 
+        | Field                    | Description                             | Possible_values                                          |
+        |--------------------------|-----------------------------------------|----------------------------------------------------------|
+        | incident_num             | Unique Incident Identifier              |                                                           |
+        | date_time                | Date / Time in 24 Hour Format           |                                                           |
+        | day                      | Day of the week                         | (1 = Sunday, 2 = Monday ...)                              |
+        | address_number_primary   | Street Number of Incident, Abstracted to block level|                                         |
+        | address_dir_primary      | Direction of street in address          | ex: 123 W El Cajon Bl                                    |
+        | address_road_primary     | Name of Street                          |                                                           |
+        | address_sfx_primary      | Street Type                             | ST, Av, etc                                              |
+        | address_pd_intersecting  | If intersecting street available, direction of that street|                                 |
+        | address_road_intersecting| If intersecting street available, street name|                                               |
+        | address_sfx_intersecting | If intersecting street available, street type|                                               |
+        | call_type                | Type of call                            | [Call Types](http://seshat.datasd.org/pd/pd_cfs_calltypes_datasd.csv)|
+        | disposition              | Classification                          | [Disposition Codes](http://seshat.datasd.org/pd/pd_dispo_codes_datasd.csv)|
+        | beat                     | San Diego PD Beat                       | [Beat Neighborhoods](http://seshat.datasd.org/pd/pd_beat_neighborhoods_datasd.csv)|
+        | priority                 | Priority assigned by dispatcher         | [Priority Definitions](http://seshat.datasd.org/pd/pd_cfs_priority_defs_datasd.pdf)|
+      </details>
+      <details>
+        <summary>Schema for San Diego Crime data</summary>
+   
+       ```python
+       df_sd_schema = types.StructType([
+            types.StructField('incident_num', types.StringType(), True),
+            types.StructField('date_time', types.TimestampType(), True),
+            types.StructField('day_of_week', types.IntegerType(), True),
+            types.StructField('address_number_primary', types.IntegerType(), True),
+            types.StructField('address_dir_primary', types.StringType(), True),
+            types.StructField('address_road_primary', types.StringType(), True),
+            types.StructField('address_sfx_primary', types.StringType(), True),
+            types.StructField('address_dir_intersecting', types.StringType(), True),
+            types.StructField('address_road_intersecting', types.StringType(), True),
+            types.StructField('address_sfx_intersecting', types.StringType(), True),
+            types.StructField('call_type', types.StringType(), True),
+            types.StructField('disposition', types.StringType(), True),
+            types.StructField('beat', types.DoubleType(), True),
+            types.StructField('priority', types.DoubleType(), True)
+       ])
+       ```
+      </details>
+        <br>
+   * **Write to Parquet Format:** The data is written to *Parquet* format, and repartitioning is performed to optimize storage and access.
+      <details>
+        <summary>Write data to parquet with repartitioning</summary>
+   
+       ```python
+       def write_parquet(df: DataFrame, output_path: str, partitions_num: int) -> None:
+        """Write data to parquet with repartitioning"""
+        print(f"Write parquet data {output_path}")
+        df \
+            .repartition(partitions_num) \
+            .write.parquet(output_path, mode='overwrite')
+       ```
+      </details>
+        <br>
+   * **Modify Columns:** The columns are modified for consistency by renaming, changing types, converting formats, and filtering as needed.
+      <details>
+        <summary>Example of columns modification for Austin dataset</summary>
+   
+       ```python
+       def modify_aus(df: DataFrame) -> DataFrame:
+           """Modify columns for AUSTIN"""
+           print(f"Modify columns for AUSTIN")
+           # To convert fields like 'Occurred_Date_Time' to Timestamp format
+           timestamp_format = "MM/dd/yyyy hh:mm:ss a"
+           # To convert fields like 'Occurred_Date' to Date format
+           date_format = "MM/dd/yyyy"
+    
+           # for filling field 'clearance_status'
+           new_clearance_status = (F.when(F.col("clearance_status") == "C", "Arrested") \
+                                   .when(F.col("clearance_status") == "O", "Exception") \
+                                   .when(F.col("clearance_status") == "N", "Not cleared") \
+                                   .otherwise(None))
+    
+           df_dt = df \
+               .withColumnRenamed("Incident_Number", "incident_num") \
+               .withColumnRenamed("Highest_Offense_Description", "crime_description") \
+               .withColumnRenamed("Highest_Offense_Code", "crime_code") \
+               .withColumnRenamed("Family_Violence", "family_violence") \
+               .withColumnRenamed("Location_Type", "location_type") \
+               .withColumnRenamed("Address", "address") \
+               .withColumnRenamed("Zip_Code", "zip_code") \
+               .withColumnRenamed("Council_District", "council_district") \
+               .withColumnRenamed("APD_Sector", "apd_sector") \
+               .withColumnRenamed("APD_District", "apd_district") \
+               .withColumnRenamed("PRA", "pra") \
+               .withColumnRenamed("Census_Tract", "census_tract") \
+               .withColumnRenamed("Clearance_Status", "clearance_status") \
+               .withColumnRenamed("UCR_Category", "ucr_category") \
+               .withColumnRenamed("Category_Description", "category_description") \
+               .withColumn("crime_datetime", F.to_timestamp("Occurred_Date_Time", timestamp_format)) \
+               .withColumn("crime_date", F.to_date("Occurred_Date", date_format)) \
+               .withColumn("report_datetime", F.to_timestamp("Report_Date_Time", timestamp_format)) \
+               .withColumn("report_date", F.to_date("Report_Date", date_format)) \
+               .withColumn("clearance_date", F.to_date("Clearance_Date", date_format)) \
+               .withColumn("clearance_status", new_clearance_status) \
+               .select("incident_num", "crime_datetime", "crime_date", \
+                       "report_datetime", "report_date", "crime_code", \
+                       "crime_description", "family_violence", "location_type", \
+                       "address", "zip_code", "council_district", \
+                       "apd_sector", "apd_district", "pra", \
+                       "census_tract", "clearance_status", "clearance_date", \
+                       "ucr_category", "category_description")
+           return df_dt
+       ```
+      </details>
+        <br>
+   * **Save to BigQuery:** The transformed data is saved to Google *BigQuery*, a fully-managed data warehouse solution, using daily partitioning based on the `crime_date` column.
+       <details>
+        <summary>Saving the data to BigQuery</summary>
+    
+       ```python
+       def write_to_bigquery(df: DataFrame, output: str, partition_column: str) -> None:
+           """Saving the data to BigQuery"""
+           print(f"Write to BigQuery {output}")
+           df.write.format('bigquery') \
+               .option('table', output) \
+               .option('partitionType', 'MONTH') \
+               .option('partitionField', partition_column) \
+               .option('clustering', partition_column) \
+               .mode("overwrite") \
+               .save()
+       ```
+       </details>
+        <br>
+      These steps ensure that the raw data is transformed into a structured and consistent format, suitable for further analysis.<br><br>
 3. **Data Modeling**: The transformed data is further processed using dbt (Data Build Tool) to create meaningful and structured data models in Google BigQuery.
-
+       <details>
+        <summary>Entity Relationship Diagrams of raw data</summary>
+        ![raw_erd.png](/images/raw_erd.png)
+       </details>
+<br>
 4. **Data Partitioning & Clustering**: The data is partitioned and clustered in BigQuery to optimize query performance and storage efficiency. Partitioning is done on a monthly basis, while clustering is done on a daily basis.
 
 5. **Data Visualization**: The processed and modeled data in BigQuery is then used to create interactive visualizations, charts, and dashboards in Looker (Google Data Studio), enabling users to explore and analyze crime trends across cities.

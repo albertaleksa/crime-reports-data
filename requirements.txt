@@ -14,3 +14,4 @@ psycopg2
 gcsfs
 google-cloud-dataproc
 dbt-bigquery
+pytest==7.4.0
