@@ -19,10 +19,12 @@ from google.cloud import dataproc_v1 as dataproc
 
 
 @task(log_prints=True)
-def load_env() -> None:
+def load_env(env_path=None) -> None:
     """Load file .env with environment variables"""
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    res = load_dotenv(os.path.join(basedir, '../.env'))
+    if env_path is None:
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        env_path = os.path.join(basedir, '../.env')
+    res = load_dotenv(env_path)
     if res:
         print("File with environment variables was successfully loaded.")
     else:
