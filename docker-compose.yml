@@ -55,8 +55,10 @@ services:
     volumes:
       - "./flows:/app/flows"
       - "./dbt_crime:/app/dbt_crime"
+      - "${KEY_FILE_PATH}:/app/${KEY_FILE}"
     environment:
       - PREFECT_API_URL=http://server:4200/api
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/${KEY_FILE}
     tty: true
     stdin_open: true
 
