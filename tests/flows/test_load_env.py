@@ -40,7 +40,7 @@ def test_load_env_successful_with_param():
         del os.environ['REGION']
 
 
-def test_load_env_successful_without_param():
+def test_load_env_successful_without_param(assert_env_vars):
     """
     This test reads each key-value pair from the .env file
     and checks that the corresponding environment variable
@@ -54,26 +54,7 @@ def test_load_env_successful_without_param():
     # Execution: Call the underlying function of the load_env task
     load_env.fn()
 
-    # Open the .env file
-    with open(env_path, 'r') as file:
-        for line in file:
-            # Skip comments and empty lines
-            if line.startswith('#') or line.strip() == '':
-                continue
-
-            # Split the line into key and value
-            key, value = line.strip().split('=', 1)
-
-            # Remove quotes if present
-            value = value.strip('"')
-
-            # Substitute references to other environment variables
-            if '${' in value:
-                var_name = value[value.index('${') + 2: value.index('}')]
-                value = value.replace('${' + var_name + '}', os.getenv(var_name))
-
-            # Check that the environment variable matches the value in the file
-            assert os.getenv(key) == value
+    assert_env_vars(env_path)
 
 
 def test_load_env_file_not_found():
