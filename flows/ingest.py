@@ -1,20 +1,12 @@
-import argparse
-import sys
 import requests
 import os
-from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 import uuid
-import pandas as pd
-
 from prefect import flow, task
-from prefect.tasks import task_input_hash
 from prefect_gcp.cloud_storage import GcsBucket
 # use GCP Credentials block for storing credentials
 from prefect_gcp import GcpCredentials
-
-from google.cloud import storage
 from google.cloud import dataproc_v1 as dataproc
 
 
@@ -33,7 +25,8 @@ def load_env(env_path=None) -> None:
     return
 
 
-# @task(log_prints=True, retries=3, retry_delay_seconds=60, cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+# @task(log_prints=True, retries=3, retry_delay_seconds=60,
+#       cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
 @task(log_prints=True, retries=3, retry_delay_seconds=60)
 def download_file(url: str, csv_name: str) -> Path:
     """Download data from web into local storage"""
@@ -177,6 +170,7 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
 
     # Use Prefect GcpCredentials Block which stores credentials
     credentials_block_name = os.getenv("CREDS_BLOCK_NAME")
+
     gcp_credentials_block = GcpCredentials.load(credentials_block_name)
     credentials = gcp_credentials_block.get_credentials_from_service_account()
 
@@ -210,8 +204,6 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
             "archive_uris": [],
         },
     }
-
-    print(f"job_details = {job_details}")
 
     # Submit the job
     operation = dataproc_client.submit_job_as_operation(
