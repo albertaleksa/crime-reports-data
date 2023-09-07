@@ -57,8 +57,10 @@ def create_gcp_bucket_block(credentials_block_name: str, bucket_name: str, bucke
     :param bucket_name: the name of the storage (bucket) in GCP
     :param bucket_block_name: name for GCP bucket block
     """
+    gcp_credentials_block = GcpCredentials.load(credentials_block_name)
+
     bucket_block = GcsBucket(
-        gcp_credentials=GcpCredentials.load(credentials_block_name),
+        gcp_credentials=gcp_credentials_block,
         bucket=bucket_name,
     )
     bucket_block.save(bucket_block_name, overwrite=True)
