@@ -1,11 +1,11 @@
 import pytest
 import json
 from flows.blocks.make_gcp_blocks import create_gcp_credentials_block
-from prefect_gcp import GcpCredentials
 
 
-def test_create_gcp_credentials_block_successful(
-        mocker):
+def test_create_gcp_credentials_block_successful(mocker,
+                                                 mock_gcp_credentials,
+                                                 mock_gcp_credentials_block):
     """
     Tests the create_gcp_credentials_block function by mocking the file read,
     JSON parsing, and GcpCredentials instantiation. It checks if all the
@@ -22,10 +22,6 @@ def test_create_gcp_credentials_block_successful(
     # Mock json.load to return the valid mock service account information
     mocker.patch('json.load', return_value=mock_file_content)
 
-    # Mock the GcpCredentials
-    mock_gcp_credentials = mocker.MagicMock(spec=GcpCredentials)
-    mock_cred_block = mocker.patch("flows.blocks.make_gcp_blocks.GcpCredentials", return_value=mock_gcp_credentials)
-
     # Call the function
     create_gcp_credentials_block(mock_cred_file_path, mock_cred_block_name)
 
@@ -37,7 +33,7 @@ def test_create_gcp_credentials_block_successful(
     json.load.assert_called_once()
 
     # Ensure the GcpCredentials block was instantiated with the correct arguments
-    mock_cred_block.assert_called_once_with(
+    mock_gcp_credentials_block.assert_called_once_with(
         service_account_info=mock_file_content
     )
 
@@ -48,8 +44,9 @@ def test_create_gcp_credentials_block_successful(
     )
 
 
-def test_create_gcp_credentials_block_fails_on_bad_json(
-        mocker):
+def test_create_gcp_credentials_block_fails_on_bad_json(mocker,
+                                                        mock_gcp_credentials,
+                                                        mock_gcp_credentials_block):
     """
     Tests that create_gcp_credentials_block raises an exception when it encounters a malformed JSON file.
     """
@@ -61,10 +58,6 @@ def test_create_gcp_credentials_block_fails_on_bad_json(
 
     # Mock json.load to raise a JSONDecodeError
     mocker.patch('json.load', side_effect=json.JSONDecodeError("Bad JSON", doc="Not a JSON", pos=0))
-
-    # Mock the GcpCredentials
-    mock_gcp_credentials = mocker.MagicMock(spec=GcpCredentials)
-    mock_cred_block = mocker.patch("flows.blocks.make_gcp_blocks.GcpCredentials", return_value=mock_gcp_credentials)
 
     # Expect a JSONDecodeError to be raised when calling the function
     with pytest.raises(json.JSONDecodeError):
@@ -78,7 +71,7 @@ def test_create_gcp_credentials_block_fails_on_bad_json(
     json.load.assert_called_once()
 
     # Ensure the GcpCredentials block was not instantiated
-    mock_cred_block.assert_not_called()
+    mock_gcp_credentials_block.assert_not_called()
 
     # Ensure the GcpCredentials save method was not called
     mock_gcp_credentials.save.assert_not_called()

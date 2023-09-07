@@ -2,6 +2,9 @@ import pytest
 import requests
 import os
 from pathlib import Path
+from prefect_gcp import GcpCredentials
+from prefect_gcp.cloud_storage import GcsBucket
+from google.cloud import dataproc_v1 as dataproc
 
 
 @pytest.fixture
@@ -115,72 +118,6 @@ def mock_os(mocker):
 
 
 @pytest.fixture
-def mock_gcs(mocker):
-    """
-    This fixture mocks the GcsBucket and its load method.
-    """
-    # Create a mock object using Python's MagicMock.
-    # This mock will be used to simulate the behavior of the GCS bucket
-    mock = mocker.MagicMock()
-    # Mock the GcsBucket.load method to return our mock_gcs object
-    # instead of actually interacting with the GCS bucket.
-    mocker.patch('prefect_gcp.cloud_storage.GcsBucket.load', return_value=mock)
-    return mock
-
-
-@pytest.fixture
-def mock_gcp_creds_in_make_gcp_blocks(mocker):
-    """
-    TThis fixture mocks the GcpCredentials in make_gcp_blocks.
-    """
-    # Mock GcpCredentials
-    mocked_gcp_credentials = mocker.MagicMock()
-    mocker.patch('flows.blocks.make_gcp_blocks.GcpCredentials', return_value=mocked_gcp_credentials)
-    return mocked_gcp_credentials
-
-
-# @pytest.fixture
-# def mock_gcp_cred_base(mocker):
-#     """
-#     This fixture mocks the GcpCredentials.
-#     """
-#     mock = mocker.MagicMock()
-#     mocker.patch('flows.ingest.GcpCredentials', return_value=mock)
-#     return mock
-
-
-# @pytest.fixture
-# def mock_gcp_creds(mock_gcp_cred_base, mocker):
-#     """
-#     This fixture builds upon mock_gcp_credentials to additionally mock the load() method.
-#     """
-#     # mock_load = mocker.patch.object(mock_gcp_cred_base, 'load')
-#     mock_load = mocker.patch.object(mock_gcp_cred_base, 'load', new=mocker.MagicMock())
-#     # mock_gcp_cred_base.load = mock_load
-#     return mock_load
-
-
-@pytest.fixture
-def mock_gcp_creds(mocker):
-    """
-    This fixture builds upon mock_gcp_credentials to additionally mock the load() method.
-    """
-    mock = mocker.MagicMock()
-    mocker.patch('prefect_gcp.GcpCredentials.load', return_value=mock)
-    return mock
-
-
-@pytest.fixture
-def mock_dataproc_client(mocker):
-    """
-    This fixture mocks the dataproc and its JobControllerClient.
-    """
-    mock = mocker.MagicMock()
-    mocker.patch('google.cloud.dataproc_v1.JobControllerClient', return_value=mock)
-    return mock
-
-
-@pytest.fixture
 def assert_env_vars():
     """
     This fixture returns a function that assert that the env variables match the .env file
@@ -208,3 +145,97 @@ def assert_env_vars():
                 assert os.getenv(key) == value
 
     return _assert_env_vars_match_file
+
+
+# Fixtures for GcpCredentials
+@pytest.fixture
+def mock_gcp_credentials(mocker):
+    """
+    This fixture mocks the GcpCredentials.
+    """
+    # Create a mock object using Python's MagicMock.
+    # This mock will be used to simulate the behavior of the GcpCredentials
+    mocked_gcp_credentials = mocker.MagicMock(spec=GcpCredentials)
+    return mocked_gcp_credentials
+
+
+@pytest.fixture
+def mock_gcp_credentials_load(mocker, mock_gcp_credentials):
+    """
+    This fixture mocks the GcpCredentials load method.
+    """
+    # Mock the GcpCredentials.load method to return our mock_gcs object
+    # instead of actually interacting with the GcpCredentials.
+    mocked_gcp_credentials_load = mocker.patch("prefect_gcp.GcpCredentials.load", return_value=mock_gcp_credentials)
+    return mocked_gcp_credentials_load
+
+
+@pytest.fixture
+def mock_gcp_credentials_block(mocker, mock_gcp_credentials):
+    """
+    This fixture mocks the GcpCredentials block creation.
+    """
+    # Mock the instance creation of the GcpCredentials object.
+    mocked_gcp_credentials_block = mocker.patch(
+        "flows.blocks.make_gcp_blocks.GcpCredentials",
+        return_value=mock_gcp_credentials
+    )
+    return mocked_gcp_credentials_block
+
+
+# Fixtures for GcsBucket
+@pytest.fixture
+def mock_gcs_bucket(mocker):
+    """
+    This fixture mocks the GcsBucket.
+    """
+    # Create a mock object using Python's MagicMock.
+    # This mock will be used to simulate the behavior of the GCS bucket
+    mocked_gcs_bucket = mocker.MagicMock(spec=GcsBucket)
+    return mocked_gcs_bucket
+
+
+@pytest.fixture
+def mock_gcs_bucket_load(mocker, mock_gcs_bucket):
+    """
+    This fixture mocks the GcsBucket load method.
+    """
+    # Mock the GcsBucket.load method to return our mock_gcs object
+    # instead of actually interacting with the GCS bucket.
+    mocked_gcs_bucket_load = mocker.patch("prefect_gcp.cloud_storage.GcsBucket.load", return_value=mock_gcs_bucket)
+    return mocked_gcs_bucket_load
+
+
+@pytest.fixture
+def mock_gcs_bucket_block(mocker, mock_gcs_bucket):
+    """
+    This fixture mocks the GcsBucket block creation.
+    """
+    # Mock the instance creation of the GcsBucket object.
+    mocked_gcs_bucket_block = mocker.patch("flows.blocks.make_gcp_blocks.GcsBucket", return_value=mock_gcs_bucket)
+    return mocked_gcs_bucket_block
+
+
+# Fixtures for dataproc.JobControllerClient
+@pytest.fixture
+def mock_job_controller_client(mocker):
+    """
+    This fixture mocks the JobControllerClient.
+    """
+    # Create a mock object using Python's MagicMock.
+    # This mock will be used to simulate the behavior of the JobControllerClient
+    mocked_job_controller_client = mocker.MagicMock(spec=dataproc.JobControllerClient)
+    return mocked_job_controller_client
+
+
+@pytest.fixture
+def mock_dataproc_client(mocker, mock_job_controller_client):
+    """
+    This fixture mocks the DataProc client creation.
+    """
+    # Mock the instance creation of the JobControllerClient object.
+    mocked_dataproc_client = mocker.patch(
+        "google.cloud.dataproc_v1.JobControllerClient",
+        return_value=mock_job_controller_client
+    )
+    return mocked_dataproc_client

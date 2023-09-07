@@ -1,28 +1,5 @@
 import pytest
 from flows.ingest import upload_to_gcs
-from prefect_gcp.cloud_storage import GcsBucket
-
-
-@pytest.fixture
-def mock_gcs_bucket(mocker):
-    """
-    This fixture mocks the GcsBucket.
-    """
-    # Create a mock object using Python's MagicMock.
-    # This mock will be used to simulate the behavior of the GCS bucket
-    mocked_gcs_bucket = mocker.MagicMock(spec=GcsBucket)
-    return mocked_gcs_bucket
-
-
-@pytest.fixture
-def mock_gcs_bucket_load(mocker, mock_gcs_bucket):
-    """
-    This fixture mocks the GcsBucket load method.
-    """
-    # Mock the GcsBucket.load method to return our mock_gcs object
-    # instead of actually interacting with the GCS bucket.
-    mocked_gcs_bucket_load = mocker.patch("prefect_gcp.cloud_storage.GcsBucket.load", return_value=mock_gcs_bucket)
-    return mocked_gcs_bucket_load
 
 
 def test_upload_to_gcs_successful(mock_env,
