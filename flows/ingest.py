@@ -1,35 +1,32 @@
-import argparse
-import sys
 import requests
 import os
-from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 import uuid
-import pandas as pd
-
 from prefect import flow, task
-from prefect.tasks import task_input_hash
 from prefect_gcp.cloud_storage import GcsBucket
 # use GCP Credentials block for storing credentials
 from prefect_gcp import GcpCredentials
-
-from google.cloud import storage
 from google.cloud import dataproc_v1 as dataproc
 
 
 @task(log_prints=True)
-def load_env() -> None:
+def load_env(env_path=None) -> None:
     """Load file .env with environment variables"""
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    res = load_dotenv(os.path.join(basedir, '../.env'))
+    if env_path is None:
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        env_path = os.path.join(basedir, '../.env')
+    res = load_dotenv(env_path)
     if res:
         print("File with environment variables was successfully loaded.")
     else:
         print("Error loading the file with environment variables.")
 
+    return
 
-# @task(log_prints=True, retries=3, retry_delay_seconds=60, cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+
+# @task(log_prints=True, retries=3, retry_delay_seconds=60,
+#       cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
 @task(log_prints=True, retries=3, retry_delay_seconds=60)
 def download_file(url: str, csv_name: str) -> Path:
     """Download data from web into local storage"""
@@ -54,22 +51,31 @@ def download_file(url: str, csv_name: str) -> Path:
         print(f"File {csv_name} downloaded successfully. Full size is {downloaded_size_mb:.2f} MB")
     else:
         print("Error downloading the file.")
+
     return path
 
 
-@task(log_prints=True)
-def upload_to_gcs(path: Path) -> None:
-    """Upload local file to GCS"""
-    bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
-    gcs_block = GcsBucket.load(bucket_block_name)
-    path_1 = path.parts[0]
-    path_rest = "/".join(path.parts[1:])
+def destination_path_for_file(path: Path) -> Path:
+    """
+    Create a destination path for downloaded files
+    from data/{city}/{cvs_name} to data/raw/{city}/{cvs_name}
+    """
+    if len(path.parts) > 1:
+        path_base = path.parts[0]
+        path_rest = "/".join(path.parts[1:])
+        destination_path = Path(f"{path_base}/raw/{path_rest}")
+    else:
+        destination_path = Path(f"raw/{path}")
 
+    return destination_path
+
+
+def remove_file(path: Path) -> None:
+    """Remove local file"""
     # Check if the file exists
     if os.path.exists(path):
-        # If the file exists, upload it to GCS
-        gcs_block.upload_from_path(from_path=f"{path}", to_path=f"{path_1}/raw/{path_rest}", timeout=300)
         os.remove(path)
+        print(f"The file {path} was removed.")
     else:
         print(f"The file '{path}' does not exist.")
 
@@ -77,22 +83,78 @@ def upload_to_gcs(path: Path) -> None:
 
 
 @task(log_prints=True)
-def upload_job_to_gcs() -> Path:
-    """Upload python-file with Spark job to gcs"""
+def upload_to_gcs(from_path: Path, to_path: Path) -> None:
+    """Upload file to GCS"""
     bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
-    spark_job_file = os.getenv("SPARK_JOB_FILE")
-    spark_job_file_path = f'flows/{os.getenv("SPARK_JOB_FILE")}'
     gcs_block = GcsBucket.load(bucket_block_name)
-    path = Path(f"code/{spark_job_file}")
 
     # Check if the file exists
-    if os.path.exists(spark_job_file_path):
+    if os.path.exists(from_path):
         # If the file exists, upload it to GCS
-        gcs_block.upload_from_path(from_path=spark_job_file_path, to_path=path, timeout=300)
+        gcs_block.upload_from_path(from_path=f"{from_path}", to_path=f"{to_path}", timeout=300)
     else:
-        print(f"The file '{spark_job_file_path}' does not exist.")
+        print(f"The file '{from_path}' does not exist.")
+
+    return
+
+
+@task(log_prints=True)
+def upload_dataset_to_gcs(path: Path) -> None:
+    """Upload dataset to GCS"""
+    to_path = destination_path_for_file(path=path)
+    upload_to_gcs(from_path=path, to_path=to_path)
+    remove_file(path=path)
+
+    return
+
+
+# @task(log_prints=True)
+# def upload_file_to_gcs(path: Path) -> None:
+#     """Upload local file to GCS"""
+#     bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
+#     gcs_block = GcsBucket.load(bucket_block_name)
+#     path_1 = path.parts[0]
+#     path_rest = "/".join(path.parts[1:])
+#
+#     # Check if the file exists
+#     if os.path.exists(path):
+#         # If the file exists, upload it to GCS
+#         gcs_block.upload_from_path(from_path=f"{path}", to_path=f"{path_1}/raw/{path_rest}", timeout=300)
+#         os.remove(path)
+#     else:
+#         print(f"The file '{path}' does not exist.")
+#
+#     return
+
+
+@task(log_prints=True)
+def upload_job_to_gcs() -> Path:
+    """Upload python-file with Spark job to gcs"""
+    spark_job_file = os.getenv("SPARK_JOB_FILE")
+    spark_job_file_path = f'flows/{spark_job_file}'
+    path = Path(f"code/{spark_job_file}")
+    upload_to_gcs(from_path=spark_job_file_path, to_path=path)
 
     return path
+
+
+# @task(log_prints=True)
+# def upload_job_to_gcs() -> Path:
+#     """Upload python-file with Spark job to gcs"""
+#     bucket_block_name = os.getenv("BUCKET_BLOCK_NAME")
+#     spark_job_file = os.getenv("SPARK_JOB_FILE")
+#     spark_job_file_path = f'flows/{os.getenv("SPARK_JOB_FILE")}'
+#     gcs_block = GcsBucket.load(bucket_block_name)
+#     path = Path(f"code/{spark_job_file}")
+#
+#     # Check if the file exists
+#     if os.path.exists(spark_job_file_path):
+#         # If the file exists, upload it to GCS
+#         gcs_block.upload_from_path(from_path=spark_job_file_path, to_path=path, timeout=300)
+#     else:
+#         print(f"The file '{spark_job_file_path}' does not exist.")
+#
+#     return path
 
 
 @task(log_prints=True)
@@ -108,6 +170,7 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
 
     # Use Prefect GcpCredentials Block which stores credentials
     credentials_block_name = os.getenv("CREDS_BLOCK_NAME")
+
     gcp_credentials_block = GcpCredentials.load(credentials_block_name)
     credentials = gcp_credentials_block.get_credentials_from_service_account()
 
@@ -123,7 +186,6 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
         "placement": {"cluster_name": cluster_name},
         "pyspark_job": {
             "main_python_file_uri": f"gs://{bucket_name}/{spark_job_file}",
-            # "args": [input_file, output_file],
             "args": [
                 "--temp_gcs_bucket", temp_gcs_bucket,
                 "--input_path_aus", input_path_aus,
@@ -142,8 +204,6 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
             "archive_uris": [],
         },
     }
-
-    print(f"job_details = {job_details}")
 
     # Submit the job
     operation = dataproc_client.submit_job_as_operation(
@@ -165,7 +225,7 @@ def submit_dataproc_job(spark_job_file: Path, temp_gcs_bucket: str,
 def web_to_gcs(url: str, csv_name: str) -> None:
     """Download data in csv and upload to GCS"""
     downloaded_file = download_file(url, csv_name)
-    upload_to_gcs(downloaded_file)
+    upload_dataset_to_gcs(downloaded_file)
 
 
 @flow(name="Submit Spark Job")

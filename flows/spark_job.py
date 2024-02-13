@@ -374,19 +374,29 @@ def main(params):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Ingest CSV data to BigQuery")
 
-    parser.add_argument("--temp_gcs_bucket", type=str, required=True, help="Temp bucket for saving to BigQuery")
+    parser.add_argument("--temp_gcs_bucket", type=str, required=True,
+                        help="Temp bucket for saving to BigQuery")
 
-    parser.add_argument("--input_path_aus", type=str, required=True, help="Path to raw CSV data for Austin Crime Records")
-    parser.add_argument("--output_path_aus", type=str, required=True, help="Output path to parquet data for Austin Crime Records")
-    parser.add_argument("--output_bq_aus", type=str, required=True, help="Table name in BigQuery for Austin Crime Records")
+    parser.add_argument("--input_path_aus", type=str, required=True,
+                        help="Path to raw CSV data for Austin Crime Records")
+    parser.add_argument("--output_path_aus", type=str, required=True,
+                        help="Output path to parquet data for Austin Crime Records")
+    parser.add_argument("--output_bq_aus", type=str, required=True,
+                        help="Table name in BigQuery for Austin Crime Records")
 
-    parser.add_argument("--input_path_la", type=str, required=True, help="Path to raw CSV data for Los Angeles Crime Records")
-    parser.add_argument("--output_path_la", type=str, required=True, help="Output path to parquet data for Los Angeles Crime Records")
-    parser.add_argument("--output_bq_la", type=str, required=True, help="Table name in BigQuery for Los Angeles Crime Records")
+    parser.add_argument("--input_path_la", type=str, required=True,
+                        help="Path to raw CSV data for Los Angeles Crime Records")
+    parser.add_argument("--output_path_la", type=str, required=True,
+                        help="Output path to parquet data for Los Angeles Crime Records")
+    parser.add_argument("--output_bq_la", type=str, required=True,
+                        help="Table name in BigQuery for Los Angeles Crime Records")
 
-    parser.add_argument("--input_path_sd", type=str, required=True, help="Path to raw CSV data for San Diego Crime Records")
-    parser.add_argument("--output_path_sd", type=str, required=True, help="Output path to parquet data for San Diego Crime Records")
-    parser.add_argument("--output_bq_sd", type=str, required=True, help="Table name in BigQuery for San Diego Crime Records")
+    parser.add_argument("--input_path_sd", type=str, required=True,
+                        help="Path to raw CSV data for San Diego Crime Records")
+    parser.add_argument("--output_path_sd", type=str, required=True,
+                        help="Output path to parquet data for San Diego Crime Records")
+    parser.add_argument("--output_bq_sd", type=str, required=True,
+                        help="Table name in BigQuery for San Diego Crime Records")
 
     args = parser.parse_args()
 
