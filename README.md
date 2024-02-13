@@ -562,7 +562,8 @@ This project processes crime records data for 3 cities (Austin, Los Angeles, and
         ![raw_erd.png](/images/raw_erd.png)
        </details>
 <br>
-4. **Data Partitioning and Clustering**: The data is partitioned and clustered in BigQuery to optimize query performance and storage efficiency. Partitioning is done on a monthly basis, while clustering is done on a daily basis.
+
+4. **Data Partitioning & Clustering**: The data is partitioned and clustered in BigQuery to optimize query performance and storage efficiency. Partitioning is done on a monthly basis, while clustering is done on a daily basis.
 
 5. **Data Visualization**: The processed and modeled data in BigQuery is then used to create interactive visualizations, charts, and dashboards in Looker (Google Data Studio), enabling users to explore and analyze crime trends across cities.
 
